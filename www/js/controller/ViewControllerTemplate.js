@@ -21,6 +21,14 @@ define(["mwf","entities"], function(mwf, entities) {
         }
 
         /*
+         * for views with listviews: bind a list item to an item view
+         * TODO: delete if no listview is used or if databinding uses ractive templates
+         */
+        this.bindListItemView = function (viewid, itemview, item) {
+            // TODO: implement how attributes of item shall be displayed in itemview
+        }
+
+        /*
          * for views with listviews: react to the selection of a listitem
          * TODO: delete if no listview is used or if item selection is specified by targetview/targetaction
          */

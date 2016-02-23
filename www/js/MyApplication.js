@@ -24,6 +24,8 @@ define(["mwf","mwfUtils","EntityManager","entities","GenericCRUDImplLocal","Gene
 
                     // TODO: do any further application specific initialisations here
 
+                    // THIS MUST NOT BE FORGOTTEN: initialise the entity manager!
+                    EntityManager.initialise();
 
                     // do not forget to call the callback
                     callback();

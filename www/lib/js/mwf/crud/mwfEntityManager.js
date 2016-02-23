@@ -375,7 +375,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                 eventhandling.notifyListeners(new eventhandling.Event("crud",eventtype,entitytype,result));
             }
             if (callback) {
-                console.log("notify(): done dispatching crud event " + eventtype + "@" + entitytype + ". Now invoking callback.");
+                console.log("notify(): done dispatching crud event " + eventtype + "@" + entitytype + ". Now invoking callback: " + callback);
                 callback(result);
             }
             else {
@@ -492,7 +492,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
          */
         function checkCrudops(entitytype) {
             if (!crudops[entitytype]) {
-                var msg = "Cannot run crudops for entitytype " + entitytype + ". No crudops registered so far. Add declaration in Entities.js!";
+                var msg = "Cannot run crudops for entitytype " + entitytype + ". No crudops registered so far. Crudops are: " + JSON.stringify(crudops);
                 console.error(msg);
                 throw new Error(msg);
             }
@@ -603,17 +603,24 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
         console.log("postLoad(): " + this._id + "@" + this.getTypename());
 
         var attrsCountdown = Object.keys(this.managedAttributes).length;
-        console.log("postLoad(): considering " + attrsCountdown + " managed attributes");
 
-        for (var attr in this.managedAttributes) {
-            var attrManager = attr + "Manager";
-            this[attrManager].load(function(){
-                attrsCountdown--;
-                if (attrsCountdown == 0) {
-                    // we pass the entity itself as argument to the callback function
-                    callback(this);
-                }
-            }.bind(this));
+
+        if (attrsCountdown == 0) {
+            console.log("postLoad(): entity does not have managed attributes. Invoke callback.");
+            callback(this);
+        }
+        else {
+            console.log("postLoad(): considering " + attrsCountdown + " managed attributes");
+            for (var attr in this.managedAttributes) {
+                var attrManager = attr + "Manager";
+                this[attrManager].load(function () {
+                    attrsCountdown--;
+                    if (attrsCountdown == 0) {
+                        // we pass the entity itself as argument to the callback function
+                        callback(this);
+                    }
+                }.bind(this));
+            }
         }
     }
 
@@ -950,7 +957,9 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
 
         em.create(this.getTypename(),this,function(){
             handleInverseOperations.call(this,inverseManagers,function(){
-                callback(this);
+                if (callback) {
+                    callback(this);
+                }
             }.bind(this));
         }.bind(this));
 
@@ -970,14 +979,21 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
     function handleInverseOperations(managers, callback, calledFromDelete) {
         var countdown = managers.length;
 
-        managers.forEach(function (manager) {
-            manager.handleInverseOperations(this, function(){
-                countdown--;
-                if (countdown == 0) {
-                    callback();
-                }
-            }.bind(this),calledFromDelete);
-        }.bind(this));
+        if (countdown == 0) {
+            if (callback) {
+                callback();
+            }
+        }
+        else {
+            managers.forEach(function (manager) {
+                manager.handleInverseOperations(this, function () {
+                    countdown--;
+                    if (countdown == 0 && callback) {
+                        callback();
+                    }
+                }.bind(this), calledFromDelete);
+            }.bind(this));
+        }
     }
 
     Entity.prototype.update = function(callback) {
@@ -987,7 +1003,9 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
 
         em.update(this.getTypename(),this._id,this,function(){
             handleInverseOperations.call(this,inverseManagers,function(){
-                callback(this);
+                if (callback) {
+                    callback(this);
+                }
             }.bind(this));
         }.bind(this));
 
@@ -1000,7 +1018,9 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
 
         em.delete(this.getTypename(),this._id,function(deleted){
             handleInverseOperations.call(this,inverseManagers,function(){
-                callback(deleted);
+                if (callback) {
+                    callback(deleted);
+                }
             }.bind(this),true);
         }.bind(this));
     };

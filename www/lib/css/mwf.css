@@ -272,11 +272,11 @@ header button, footer button, header input[type=submit], footer[type=submit] {
 }
 
 
-@media (-webkit-min-device-pixel-ratio: 2) {
-    .mwf-dialog input {
-        width: calc(100% - 40px);
-    }
-}
+/*@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi)  {*/
+    /*.mwf-dialog input {*/
+        /*width: calc(100% - 40px);*/
+    /*}*/
+/*}*/
 
 .mwf-dialog input:invalid {
     border: none;
@@ -658,7 +658,7 @@ li input {
     padding-right: 5px;
 }
 
-.mwf-disabled {
+.mwf-disabled,[disabled] {
     opacity: 0.5;
 }
 

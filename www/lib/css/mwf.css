@@ -92,7 +92,6 @@ header h2 {
     opacity: 1.0
 }
 
-
 footer {
     background-color: black;
     height: 40px;
@@ -119,6 +118,8 @@ button, input[type=submit], textarea {
     width: 100%;
     margin: 0px;
     border: none;
+    /* explicitly assign 0px padding for centering the text of submit/button also on small width screens */
+    padding: 0px;
 }
 
 button, input[type=submit] {
@@ -265,9 +266,17 @@ header button, footer button, header input[type=submit], footer[type=submit] {
     font-size: 12pt;
     padding-bottom: 5px;
     width: calc(100% - 20px);
+    width: -webkit-calc(100% - 20px);
+    border-radius: 0px;
     border-bottom: 3px solid limegreen;
 }
 
+
+@media (-webkit-min-device-pixel-ratio: 2) {
+    .mwf-dialog input {
+        width: calc(100% - 40px);
+    }
+}
 
 .mwf-dialog input:invalid {
     border: none;
@@ -362,6 +371,7 @@ header button, footer button, header input[type=submit], footer[type=submit] {
 
 form {
     width: calc(100% - 20px);
+    width: -webkit-calc(100% - 20px);
     max-width: 100%;
     padding: 10px;
 }
@@ -378,8 +388,9 @@ fieldset {
      padding-top: 0px;
      padding-bottom: 2px;
      width: calc(100% - 30px);
-     /*max-width: 90%;
-     min-width: 90%;*/
+     width: -webkit-calc(100% - 30px);
+    /*max-width: 90%;
+    min-width: 90%;*/
 }
 
 legend {
@@ -494,7 +505,8 @@ li.mwf-li-singletitle .mwf-imgbutton, li.mwf-li-title-subtitle .mwf-imgbutton, l
     font-size: 16pt;
     font-weight: normal;
     margin: 0px;
-    max-width: -moz-calc(100% - 100px);
+    max-width: calc(100% - 100px);
+    max-width: -webkit-calc(100% - 100px);
     overflow: hidden;
 }
 

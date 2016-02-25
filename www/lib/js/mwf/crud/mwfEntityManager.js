@@ -375,7 +375,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                 eventhandling.notifyListeners(new eventhandling.Event("crud",eventtype,entitytype,result));
             }
             if (callback) {
-                console.log("notify(): done dispatching crud event " + eventtype + "@" + entitytype + ". Now invoking callback: " + callback);
+                console.log("notify(): done dispatching crud event " + eventtype + "@" + entitytype + ". Now invoking callback.");
                 callback(result);
             }
             else {

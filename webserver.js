@@ -31,27 +31,34 @@ server = http.createServer(function(req, res) {
         console.log("onHttpRequest(): got a call to the http2mdb api. Will continue processing there...");
         http2mdb.processRequest(req, res);
     } else {
-        if (path == '/') {
-            // if the root is accessed we serve the main html document
-            path = "app.html";
+        if (path.length > 1 && path.indexOf("%7D%7D") == path.length-6) {
+            console.warn("onHttpRequest(): path seems to be a template filling expression. Will not deliver anything.");
+            res.writeHead(204);
+            res.end();
         }
-        // serveable resources will be put in the webcontent directory -- the callback will be passed the data read out from the file being accessed
-        fs.readFile(__dirname + "/www/" + path, function(err, data) {
-            // check whether we have got an error retrieving the resource: create a 404 error, assuming that a wrong uri was used
-            if (err) {
-                console.error("ERROR: cannot find file: " + path);
-                res.writeHead(404);
-                res.end();
+        else {
+            if (path == '/') {
+                // if the root is accessed we serve the main html document
+                path = "app.html";
             }
-            // otherwise create a 200 response and set the content type header
-            else {
-                res.writeHead(200, {
-                    'Content-Type' : contentType(path)
-                });
-                res.write(data, 'utf8');
-                res.end();
-            }
-        });
+            // serveable resources will be put in the webcontent directory -- the callback will be passed the data read out from the file being accessed
+            fs.readFile(__dirname + "/www/" + path, function (err, data) {
+                // check whether we have got an error retrieving the resource: create a 404 error, assuming that a wrong uri was used
+                if (err) {
+                    console.error("onHttpRequest(): ERROR: cannot find file: " + path);
+                    res.writeHead(404);
+                    res.end();
+                }
+                // otherwise create a 200 response and set the content type header
+                else {
+                    res.writeHead(200, {
+                        'Content-Type': contentType(path)
+                    });
+                    res.write(data, 'utf8');
+                    res.end();
+                }
+            });
+        }
     }
 
     // exception handling, see http://stackoverflow.com/questions/5999373/how-do-i-prevent-node-js-from-crashing-try-catch-doesnt-work

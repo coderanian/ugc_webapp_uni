@@ -182,9 +182,6 @@ define([ "mwfUtils","eventhandling","EntityManager"], function ( mwfUtils, event
 
         this.pendingEventListeners = new Array();
 
-        // we also make the application object accessible
-        this.application = applicationObj;
-
         // the root of our view
         this.root = null;
         // the args that we are using
@@ -772,6 +769,7 @@ define([ "mwfUtils","eventhandling","EntityManager"], function ( mwfUtils, event
                 var nextViewController = new nextViewControllerFunction();
                 console.log("created next view controller:: " + nextViewController);
                 nextViewController.setViewAndArgs(nextView, viewargs);
+                nextViewController.application = applicationObj;
                 applicationState.pushViewController(nextViewController, asRootView);
             }
         }
@@ -1518,6 +1516,7 @@ define([ "mwfUtils","eventhandling","EntityManager"], function ( mwfUtils, event
                 var initialViewControllerFunction = require(initialViewControllerClassname);
                 var initialViewController = new initialViewControllerFunction();
 
+                initialViewController.application = applicationObj;
                 initialViewController.setViewAndArgs(initialView);
                 console.log("after setting view and args, root is: " + initialViewController.root);
 
@@ -1593,6 +1592,9 @@ define([ "mwfUtils","eventhandling","EntityManager"], function ( mwfUtils, event
         }
 
         this.initialiseCRUD = function(scope,em) {
+            if (!em) {
+                em = EntityManager;
+            }
 
             console.log("initialiseCRUD(): crudops declaration is: " + mwfUtils.stringify(crudops));
 
@@ -1611,6 +1613,11 @@ define([ "mwfUtils","eventhandling","EntityManager"], function ( mwfUtils, event
         }
 
         this.switchCRUD = function(scope,em) {
+
+            if (!em) {
+                em = EntityManager;
+            }
+
             for (var entitytype in crudops) {
                 this.switchCRUDForType(entitytype,scope,em);
             }
@@ -1618,6 +1625,10 @@ define([ "mwfUtils","eventhandling","EntityManager"], function ( mwfUtils, event
         }
 
         this.switchCRUDForType = function(entitytype,scope,em) {
+            if (!em) {
+                em = EntityManager;
+            }
+
             var impl = crudops[entitytype][scope];
             if (!impl) {
                 console.warn("switchCRUDForType(): could not find impl for entitytype " + entitytype + " in scope " + scope + ". Will not change existing impl");

@@ -232,6 +232,9 @@ define(function() {
         subtype.prototype = new supertype();
         // re-set the constructor to the subtype
         subtype.prototype.constructor = subtype;
+
+        // see for the issues related to this solution, e.g.: http://stackoverflow.com/questions/4152931/javascript-inheritance-call-super-constructor-or-use-prototype-chain
+        // however, without instantiating the supertype, public functions declared inside the supertype constructor functions, rather than via prototype.functionname, will not be available on the prototype object
     }
 
     function stringifyObj(obj) {

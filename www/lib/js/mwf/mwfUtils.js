@@ -235,6 +235,7 @@ define(function() {
 
         // see for the issues related to this solution, e.g.: http://stackoverflow.com/questions/4152931/javascript-inheritance-call-super-constructor-or-use-prototype-chain
         // however, without instantiating the supertype, public functions declared inside the supertype constructor functions, rather than via prototype.functionname, will not be available on the prototype object
+        // changing this should not be a big deal, though, as most abstract components (most prominently ViewController) declare their public functions as prototype functions
     }
 
     function stringifyObj(obj) {

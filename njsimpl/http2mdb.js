@@ -116,7 +116,7 @@ function readObject(collection, objectid, req, res) {
             console.log("Error accessing collection! " + err ? err : "");
             respondError(res);
         } else if (elements.length == 0) {
-            console.error("the element with id " + objectid + " could be found inside of the collection.");
+            console.error("the element with id " + objectid + " could not be found inside of the collection.");
             respondError(res, 404);
         } else {
             console.log("readObject(): found " + elements.length + " elements.");

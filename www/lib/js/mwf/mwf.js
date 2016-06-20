@@ -327,6 +327,16 @@ define([ "mwfUtils","eventhandling","EntityManager"], function ( mwfUtils, event
                         eventData.eventType = "itemMenuSelected";
                         eventData = lookupTarget(currentNode.parentNode, eventData);
                     }
+                    // also allow to embed actions directly in list items
+                    else if (currentNode.classList.contains("mwf-listitem-action")) {
+                        if (!eventData) {
+                            eventData = {};
+                        }
+                        console.log("found a listitem-action in listview event");
+                        eventData.eventType = "itemActionSelected";
+                        eventData.listitemAction = currentNode;
+                        eventData = lookupTarget(currentNode.parentNode, eventData);
+                    }
                     else if (currentNode.classList.contains("mwf-listitem")) {
                         console.log("found a listitem in listview event");
                         if (!eventData) {
@@ -359,6 +369,10 @@ define([ "mwfUtils","eventhandling","EntityManager"], function ( mwfUtils, event
                     // if we have an itemMenuSelected event we stop propagation - otherwise a itemSelection event will be triggered
                     if (eventData.eventType == "itemMenuSelected") {
                         this.onListItemMenuSelected(eventData.listitem, eventData.listview);
+                    }
+                    // we invoke the itemMenuItemSelected function which will also be called when selecting an action from the action menu
+                    else if (eventData.eventType == "itemActionSelected") {
+                        this.onListItemMenuItemSelected(eventData.listitemAction, eventData.listitem, eventData.listview);
                     }
                     else {
                         this.onListItemElementSelected(eventData.listitem, eventData.listview);
@@ -455,7 +469,8 @@ define([ "mwfUtils","eventhandling","EntityManager"], function ( mwfUtils, event
                             console.log("we already reached the root of the menu. Click does not seem to have selected a menu item...");
                             return null;
                         }
-                        else if (node.classList.contains("mwf-menu-item")) {
+                        // generalise listitem-action
+                        else if (node.classList.contains("mwf-menu-item") || node.classList.contains("mwf-listitem-action")) {
                             return node;
                         }
                         else {
@@ -1135,7 +1150,7 @@ define([ "mwfUtils","eventhandling","EntityManager"], function ( mwfUtils, event
 
 
     /*
-     * encapsulare the template engine underneath of these function - this is executed synchronically
+     * encapsulare the template engine underneath of these functions - this is executed synchronically
      */
     function TemplateProxy(ractive) {
 

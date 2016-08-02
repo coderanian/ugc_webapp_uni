@@ -18,7 +18,7 @@ define(["mwf","entities"], function(mwf, entities) {
 
             // call the superclass once creation is done
             proto.oncreate.call(this,callback);
-        }
+        };
 
         /*
          * for views with listviews: bind a list item to an item view
@@ -26,7 +26,7 @@ define(["mwf","entities"], function(mwf, entities) {
          */
         this.bindListItemView = function (viewid, itemview, item) {
             // TODO: implement how attributes of item shall be displayed in itemview
-        }
+        };
 
         /*
          * for views with listviews: react to the selection of a listitem
@@ -34,7 +34,7 @@ define(["mwf","entities"], function(mwf, entities) {
          */
         this.onListItemSelected = function(listitem,listview) {
             // TODO: implement how selection of listitem shall be handled
-        }
+        };
 
         /*
          * for views with listviews: react to the selection of a listitem menu option
@@ -42,7 +42,7 @@ define(["mwf","entities"], function(mwf, entities) {
          */
         this.onListItemMenuItemSelected = function(option, listitem, listview) {
             // TODO: implement how selection of option for listitem shall be handled
-        }
+        };
 
         /*
          * for views with dialogs

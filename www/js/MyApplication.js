@@ -8,7 +8,7 @@ define(["mwf","mwfUtils","EntityManager","entities","GenericCRUDImplLocal","Gene
         var proto = MyApplication.prototype;
 
         this.oncreate = function(callback) {
-            console.log("MyApplication.oncreate(): calling supertype oncreate")
+            console.log("MyApplication.oncreate(): calling supertype oncreate");
 
             // first call the supertype method and pass a callback
             proto.oncreate.call(this,function() {
@@ -40,8 +40,6 @@ define(["mwf","mwfUtils","EntityManager","entities","GenericCRUDImplLocal","Gene
 
     mwf.xtends(MyApplication,mwf.Application);
 
-    var instance = new MyApplication();
-
-    return instance;
+    return new MyApplication();
 
 });

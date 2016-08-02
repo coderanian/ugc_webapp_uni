@@ -31,7 +31,8 @@ define(function() {
 
 		// this tracks whether ids are int values or not
 		var intids = {};
-		for (var i = 0; i < _objectstores.length; i++) {
+		var i = 0;
+		for (i = 0; i < _objectstores.length; i++) {
 			if (_intids && _intids[i]) {
 				intids[objectstores[i]] = _intids[i];
 			}
@@ -41,7 +42,7 @@ define(function() {
 		}
 		// check whether the modifiers contain a keypath declaration, in which case the update operations needs to be realised differently
 		var usekeypathForUpdate = {};
-		for (var i = 0; i < _objectstores.length; i++) {
+		for (i = 0; i < _objectstores.length; i++) {
 			if (modifiers && modifiers[i] && modifiers[i].keyPath) {
 				usekeypathForUpdate[objectstores[i]] = true;
 			} else {
@@ -121,7 +122,8 @@ define(function() {
 
 				console.log("open().onupgradeneeded(): done.");
 			}
-		}
+		};
+
 		/*
 		 * delete a db
 		 */
@@ -129,7 +131,8 @@ define(function() {
 			console.log("deleting db: " + dbname);
 			indexedDB.deleteDatabase(dbname);
 			console.log("deletion done.");
-		}
+		};
+
 		/*************************
 		 * simple CRUD operations
 		 *************************/
@@ -165,7 +168,7 @@ define(function() {
 				if (event.target.result) {
 					object._id = event.target.result;
 				}
-			}
+			};
 
 			// add a callback on the transaction that sets the id created by the add function!
 			transaction.oncomplete = function (event) {
@@ -174,14 +177,15 @@ define(function() {
 					onsuccess(object, context);
 				}
 			};
-		}
+		};
+
 		/*
 		 * read all objects from some store
 		 */
 		this.readAllObjects = function (objectstore, onsuccess, onerror, context) {
 			console.log("readAllObjects(): objectstore: " + objectstore);
 
-			var objects = new Array();
+			var objects = [];
 
 			// we create a transaction for the objectstore and access the store from that transaction
 			var objectStore = db.transaction([objectstore]).objectStore(objectstore);
@@ -211,7 +215,8 @@ define(function() {
 					alert("Got error trying to read all objects from store " + objectstore + ": " + event.target.errorCode);
 				}
 			}
-		}
+		};
+
 		/*
 		 * read a single object
 		 */
@@ -250,7 +255,8 @@ define(function() {
 					}
 				}
 			};
-		}
+		};
+
 		/*
 		 * update an object
 		 */
@@ -267,7 +273,7 @@ define(function() {
 				// Get the old value that we want to update
 				var currentValue = request.result;
 				// then do the partial update manually
-				for (attr in update) {
+				for (var attr in update) {
 					currentValue[attr] = update[attr];
 				}
 
@@ -300,7 +306,7 @@ define(function() {
 
 			// set an oncomplete callback on the transaction which will invoke the callback possed to this function
 			transaction.oncomplete = function (event) {
-				console.log("updateObject(): oncomplete")
+				console.log("updateObject(): oncomplete");
 				if (onsuccess) {
 					// we just feed back true/false
 					onsuccess(true, context);
@@ -308,7 +314,8 @@ define(function() {
 					console.log("successfully updated object " + id + ". Got: " + event.target.result);
 				}
 			};
-		}
+		};
+
 		/*
 		 * delete an object
 		 */

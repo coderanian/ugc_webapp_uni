@@ -19,30 +19,30 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
 
         // TODO: rather than using single maps, at least parts of them could be consolidated at some moment...
         // a map of crud operations implementations for each entity type
-        var crudops = new Object();
+        var crudops = {};
 
         // provide entity type definitions
-        var entityTypedefs = new Object();
+        var entityTypedefs = {};
 
         // a map of entities, containing a map for each entity type
-        var entities = new Object();
+        var entities = {};
 
         // for more efficient access a map of arrays pointing to the same entities
-        var entityarrays = new Object();
+        var entityarrays = {};
 
         // a map that specifies for which type the event dispatcher shall be used - for the time being, we only support complete dispatching of all write operations in contrast to not dispatching read operations
-        var entityCRUDDispatching = new Object();
+        var entityCRUDDispatching = {};
 
         var initialised = false;
 
-        // add crudoperations for the given type and an optional type definition
+        // add crudoperations for the given type and an optional type definition - complaints related to "unused definition" do not count as the function will be used by concrete applications based on mwf
         this.addCRUD = function (entitytype, entitycrudops, typedef, dispatch) {
             console.log("addCRUD(): " + entitytype);
             crudops[entitytype] = entitycrudops;
-            entities[entitytype] = new Object();
+            entities[entitytype] = {};
             // we set an attribute on the map that marks whether readAll has already been executed
             entityarrays[entitytype] = {
-                values: new Array(),
+                values: [],
                 syncedWithDatasource: false
             };
             if (typedef) {
@@ -50,24 +50,24 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                 entityTypedefs[entitytype] = typedef;
             }
             entityCRUDDispatching[entitytype] = dispatch;
-        }
+        };
 
         // reset the crud operations, resulting in clearing the internally represented entities
         this.resetCRUD = function(entitytype,entitycrudops) {
             console.log("resetCRUD(): " + entitytype);
             crudops[entitytype] = entitycrudops;
-            entities[entitytype] = new Object();
+            entities[entitytype] = {};
             // we set an attribute on the map that marks whether readAll has already been executed
             entityarrays[entitytype] = {
-                values: new Array(),
+                values: [],
                 syncedWithDatasource: false
             };
-        }
+        };
 
         // allow to access crudops
         this.getCRUD = function(entitytype) {
             return crudops[entitytype];
-        }
+        };
 
         this.addTypedef = function(typedef,typename) {
             if (typedef.prototype.getTypename) {
@@ -80,12 +80,13 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                 console.log("adding typedef for non-entity type: " + typename);
                 entityTypedefs[typename] = typedef;
             }
-        }
+        };
 
         this.initialise = function() {
             // try out to process the managed attributes here
             if (!initialised) {
                 console.log("EntityManager has not yet been initialised. Run...");
+                // TODO: the forllowing foreach functions should be looked at
                 allManagedAttributes.forEach(function(attrs,type){
                     attrs.forEach(function(params,attr){
                         type.prototype.addManagedAttributeToType(type,attr,params.attrtypename,params);
@@ -96,7 +97,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
             else {
                 console.warn("EntityManager has already been initialised! This function should only called once!");
             }
-        }
+        };
 
         this.create = function (entitytype, entity, callback) {
             checkInitialised();
@@ -121,7 +122,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                 pojoToEntity(created, function(createdEntity) {
                     notify(entitytype,"created",createdEntity,callback);
                 }.bind(this), entity)}.bind(this));
-        }
+        };
 
 
         // this wil be called on two different occasions below (we moved it outside of update() as it is also used in refresh())
@@ -137,7 +138,8 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                 return update;
             }
             else {
-                for (key in update) {
+                // ignore the complaints regarding "probably missing hasOwnProperty check" for the time being
+                for (var key in update) {
                     var value = update[key];
                     // we must not override the id!!! ... and we should not override keys with null values!
                     // TODO: there should be some solution to deal with deletion/resetting of values
@@ -204,7 +206,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
 
                 }
             }.bind(this));
-        }
+        };
 
         this.refresh = function (entitytype, entityid, callback, noentity) {
             checkInitialised();
@@ -237,7 +239,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
 
                 }
             }.bind(this));
-        }
+        };
 
         this.delete = function (entitytype, entityid, callback) {
             checkInitialised();
@@ -257,7 +259,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                     }
                 }
             });
-        }
+        };
 
         function pojoToEntity(pojo,callback,useEntity) {
             console.log("pojoToEntity()");
@@ -342,7 +344,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                     }
                 }.bind(this));
             }
-        }
+        };
 
         // we only read out once!
         this.readAll = function (entitytype, callback) {
@@ -357,11 +359,11 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                 console.log("readAll(): entities of type " + entitytype + " have not yet been synced. Call crudop on datasource");
                 syncWithDatasource.call(this,entitytype, callback);
             }
-        }
+        };
 
         this.getCrudopsForType = function(entitytype) {
             return crudops[entitytype];
-        }
+        };
 
         // if some specific implementation used crud operartions beyond the standard ones, it might be necessary to refresh the entity manager's representation of affected entities
         this.syncLocal = function (entitytype, entity) {
@@ -375,14 +377,14 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                 entities[entitytype][entity._id] = entity;
                 entityarrays[entitytype].values.push(entity);
             }
-        }
+        };
 
         this.resetEntities = function(entitytype) {
             console.warn("resetEnties(): will remove all local entities of type " + entitytype + ". Entities will be read out from datasource on subsequent access...");
-            entities[entitytype] = new Object();
-            entityarrays[entitytype] = new Object();
-            entityarrays[entitytype].values = new Array();
-        }
+            entities[entitytype] = {};
+            entityarrays[entitytype] = {};
+            entityarrays[entitytype].values = [];
+        };
 
         this.sync = function (entitytype, entityid, callback) {
             checkInitialised();
@@ -394,18 +396,18 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                 this.syncLocal(entitytype, read);
                 callback(read);
             }.bind(this))
-        }
+        };
 
         this.syncAll = function (entitytype, callback) {
             checkInitialised();
             checkCrudops(entitytype);
             syncWithDatasource.call(this,entitytype, callback);
-        }
+        };
 
         this.newInstanceOfType = function(entitytype) {
             checkInitialised();
             return new entityTypedefs[entitytype]();
-        }
+        };
 
         /*
          * notify about the result of a crud operation by using the eventdispatcher and/or calling a callback
@@ -482,7 +484,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                     }
                     else {
                         // do not forget this callback...
-                        callback(new Array());
+                        callback([]);
                     }
                 }
                 else {
@@ -512,7 +514,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
         }
 
         function map2array(map) {
-            var values = new Array();
+            var values = [];
             for (var key in map) {
                 values.push(map[key]);
             }
@@ -559,7 +561,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                     console.error("inconsistent datamodel. Could not find any managed attributes for type: " + typename);
                 }
                 else {
-                    attr = attrs.get(attrname);
+                    var attr = attrs.get(attrname);
                     if (!attr) {
                         console.error("inconsistent datamodel. Could not find managed attribute " + attrname + " for type: " + typename);
                     }
@@ -578,7 +580,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
     function createEntityInstanceFromObject(entitytypedef, object) {
 
         var entity = new entitytypedef();
-        for (attr in object) {
+        for (var attr in object) {
             entity[attr] = object[attr];
         }
 
@@ -607,7 +609,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
 
         this._id = nextLocalId();
 
-        this.managedAttributes = new Object();
+        this.managedAttributes = {};
 
     }
 
@@ -638,7 +640,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
     Entity.prototype.prePersist = function () {
         // this is currently not used as it is dealt with by the toPojo function
         console.log(this.getTypename() + ".prePersist()");
-    }
+    };
 
     Entity.prototype.postLoad = function (callback) {
         console.log("postLoad(): " + this._id + "@" + this.getTypename());
@@ -663,8 +665,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                 }.bind(this));
             }
         }
-    }
-
+    };
 
     // a helper function that creates an initial uppercase singular version from some typename
     function singularise(attrname) {
@@ -690,7 +691,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                 this[attrManager] = new ManagedEntity(this.managedAttributes[attr]);
             }
         }
-    }
+    };
 
     Entity.prototype.declareManagedAttribute = function (type,attrname,attrtypename,params) {
         console.log("declareManagedAttribute(): " + type.prototype.getTypename() + "." + attrname + " of type: " + attrtypename);
@@ -708,17 +709,16 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
             params.attrtypename = attrtypename;
         }
         else {
-            params = new Object();
+            params = {};
             params.attrtypename = attrtypename;
         }
         currentTypeAttrs.set(attrname, params);
-    }
-
+    };
 
     Entity.prototype.addManagedAttributeToType = function(type,attrname,attrtypename,params) {
-        console.log("addManagedAttributeToType(): " + this.getTypename() + "." + attrname + " of type " + attrtypename + "/" + params)
+        console.log("addManagedAttributeToType(): " + this.getTypename() + "." + attrname + " of type " + attrtypename + "/" + params);
         if (!params) {
-            params = new Object();
+            params = {};
         }
 
         // check whether we have an inverse attribute specified and, lookup its description and replace it in the params
@@ -731,7 +731,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
 
         // reengineer this!
         if (!type.prototype.managedAttributes) {
-            type.prototype.managedAttributes = new Object();
+            type.prototype.managedAttributes = {};
         }
         type.prototype.managedAttributes[attrname] = params;
         type.prototype.managedAttributes[attrname].type = attrtypename;
@@ -781,6 +781,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                 },
                 set: function(obj) {
                     if (obj._id < 0 && !params.allowTransient) {
+                        // the following this reference which is complained about as "potentially invalid" *is*, in fact, valid
                         console.error(this.getTypename() + ".add" + singularised + "(): will ignore transient entity without _id - you may consider setting allowTransient!");
                     }
                     else {
@@ -804,22 +805,23 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
             type.prototype["add" + singularised] = function(obj) {
                 // check whether we have an id set!
                 if (obj._id < 0 && !params.allowTransient) {
+                    // valid this reference
                     console.error(this.getTypename() + ".add" + singularised + "(): will ignore transient entity without _id - you may consider setting allowTransient!");
                 }
                 else {
                     this[attrManager].push(obj);
                     handleInverseAttr.call(this, obj, params);
                 }
-            }
+            };
             type.prototype["remove" + singularised] = function(obj) {
                 this[attrManager].removeObj(obj);
                 handleInverseAttr.call(this,obj,params,true);
-            }
+            };
             type.prototype["get" + singularised] = function(objid) {
                 return this[attrManager].getObj(objid);
             }
         }
-    }
+    };
 
     Entity.prototype.removeEntityref = function (arr, entityid) {
         // lookup the index
@@ -836,7 +838,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
         else {
             console.warn("canot remove entityref for " + entityid + " on instance of type " + this.getTypename() + ", it does not seem to exist...");
         }
-    }
+    };
 
     Entity.prototype.lookupEntityref = function (arr, entityid) {
         for (var i = 0; i < arr.length; i++) {
@@ -845,7 +847,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
             }
         }
         return null;
-    }
+    };
 
     Entity.prototype.fromPojo = function(pojo) {
         console.log(this.getTypename() + ".fromPojo(): " + mwfUtils.stringify(pojo));
@@ -868,6 +870,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                             if (typeof val[0] === "object") {
                                 // normally, we will have ids here, as fromPojo will be called with raw datasource output
                                 val.forEach(function(obj){
+                                    // here, it is ok to use the mutable variable
                                     this[managedAttr].push(obj);
                                 }.bind(this));
                             }
@@ -899,7 +902,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
         // at the end, we remove the managedAttributes, as otherwise they will show up in all toString/json representations
         delete this.managedAttributes;
 
-    }
+    };
 
     function isProtectedMember(attr) {
         //console.log("isProtectedMember: " + attr + ": type is: " + (typeof this[attr]) + ", this: " + this._id);
@@ -908,7 +911,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
     }
 
     Entity.prototype.toPojo = function() {
-        var pojo = new Object();
+        var pojo = {};
 
         // first of all, we add the type
         pojo[typenameAttr] = this.getTypename();
@@ -946,7 +949,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
         }
 
         return pojo;
-    }
+    };
 
     /*
      * add crud functions directly on the entities
@@ -1009,10 +1012,10 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
     // let entities access crud in order to implement custom operations!
     Entity.prototype.getCRUD = function() {
         return em.getCRUD(this.getTypename());
-    }
+    };
 
     function prepareInverseOperations() {
-        var managers = new Array();
+        var managers = [];
         for (var attr in this.managedAttributes) {
             var attrManager = attr + "Manager";
             if (this.managedAttributes[attr].inverse) {
@@ -1103,10 +1106,10 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
         if (supertype.prototype instanceof Entity || supertype == Entity) {
             base.read = function(entityid,callback) {
                 (new base()).read(entityid,callback);
-            }
+            };
             base.readAll = function(callback) {
                 (new base()).readAll(callback);
-            }
+            };
             // we also add a function that gives us the crud implementation for the given entity
             base.getCRUD = function() {
                 return em.getCrudopsForType((new base()).getTypename());
@@ -1137,7 +1140,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
 
         this.getId = function() {
             return entityid;
-        }
+        };
 
         this.entity = function() {
             console.log("entity()");
@@ -1162,15 +1165,16 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                     entityobj = read;
                     this.loaded = true;
                     callback(read);
-                });
+                }.bind(this));
+                // the previous bind() had been forgotten, and it *is* necessary here
             }
-        }
+        };
 
         this.set = function(obj) {
             console.log("set(): " + obj);
             entityobj = obj;
             entityid = obj._id;
-        }
+        };
 
         this.setEntityref = function(objid) {
             console.log("setEntityref(): " + objid);
@@ -1189,12 +1193,12 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
         var proto = ManagedEntitiesArray.prototype;
 
         // the two possible representations of the entity: as ids / as object
-        var entityids = new Array();
-        var entityobjs = new Array();
+        var entityids = [];
+        var entityobjs = [];
 
         // two arrays that track pending crud operations with regard to the attribute's owner on the associated entities
-        this.pendingInverseAdditions = new Array();
-        this.pendingInverseRemovals = new Array();
+        this.pendingInverseAdditions = [];
+        this.pendingInverseRemovals = [];
 
         // the ids onload (were meant to distinguish between original state and edited state, but is badly handleable)
         //this.entityidsOnload;
@@ -1203,6 +1207,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
 
         function addPendingInverse(entity) {
             if (params.inverse) {
+                // this reference is ok as the function will be invoked using call() and passing the reference - holds for all other references further below
                 if (this.pendingInverseAdditions.indexOf(entity) < 0) {
                     this.pendingInverseAdditions.push(entity);
                 }
@@ -1240,7 +1245,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
             checkConsistency();
             // if we are loaded return the ids of the objects in entityobjs
             if (loaded) {
-                var ids = new Array();
+                var ids = [];
                 entityobjs.forEach(function(obj) {
                     ids.push(createId(obj));
                 });
@@ -1249,11 +1254,11 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
             else {
                 return entityids;
             }
-        }
+        };
 
         this.getNonTransientIds = function() {
             checkConsistency();
-            var ids = new Array();
+            var ids = [];
             this.getIds().forEach(function(id){
                 if (segmentId(id).id > 0) {
                     ids.push(id);
@@ -1263,12 +1268,12 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                 }
             });
             return ids;
-        }
+        };
 
         this.entities = function() {
             console.log(params.attrname + ".entities().length " + entityobjs.length);
             checkConsistency();
-            var objs = new Array();
+            var objs = [];
             if (!loaded) {
                 if (entityobjs.length > 0 && entityobjs[0] instanceof Entity) {
                     // this is the case if we access entities of an object that is about to be created!
@@ -1293,7 +1298,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
             objs.loaded = loaded;
 
             return objs;
-        }
+        };
 
         this.load = function(callback,becomeEager) {
             checkConsistency();
@@ -1302,7 +1307,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
 
             if (params.lazyload && !becomeEager) {
                 console.log(params.type + ".load(): entities shall be loaded lazily. Wait until loading will be enforced.");
-                callback(new Array());
+                callback([]);
             }
             else {
                 // if both arrays are empty, we return immediately
@@ -1336,7 +1341,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                     }
                 }
             }
-        }
+        };
 
         // this function is used by the fromPojo function of entity which will be called once a detached entity instance is obtained from the datasource
         this.pushEntityref = function(entityid) {
@@ -1355,7 +1360,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
             else {
                 console.warn("ManagedEntitiesArray.pushEntityref(): this function should not be called after loading! Ignore for managed attribute " + params.attrname);
             }
-        }
+        };
 
         // we need to push the entity regardless of whether we are loaded or not
         this.push = function(entity) {
@@ -1370,7 +1375,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
             else {
                 console.log("ManagedEntitiesArray.push(): will not add entity with id " + entity._id + " to entities. It seems to be contained already.");
             }
-        }
+        };
 
         // access some object with a given id
         this.getObj = function(objid) {
@@ -1389,7 +1394,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                     return entityobjs[index];
                 }
             }
-        }
+        };
 
         // remove some object with a given id
         this.removeObj = function(obj) {
@@ -1417,7 +1422,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                     console.warn("removeObj(): entity with id cannot be found: " + obj._id);
                 }
             }
-        }
+        };
 
         function lookupEntitypos(obj) {
             for (var i=0;i<entityobjs.length;i++) {
@@ -1461,7 +1466,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                 var countdown = (calledFromDelete ? 0 : this.pendingInverseAdditions.length) + this.pendingInverseRemovals.length;
                 //console.log(params.attrname + ".handleInverseOperations(): total number of inverse operations: " + countdown);
 
-                var inverseOperations = new Array();
+                var inverseOperations = [];
                 if (!calledFromDelete) {
                     this.pendingInverseAdditions.forEach(function (toEntity) {
                         inverseOperations.push({toEntity: toEntity});
@@ -1518,10 +1523,10 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                         // we will create an update for the inverseAttr, appending the id of fromEntity to the entityidsOnLoad list
                         //var updateids = currentManager.entityidsOnload;
                         // use the actual ids!
-                        var updateids = (new Array()).concat(currentManager.getNonTransientIds());
+                        var updateids = ([]).concat(currentManager.getNonTransientIds());
 
                         if (!op.removal) {
-                            var fromId = createId(fromEntity)
+                            var fromId = createId(fromEntity);
                             if (updateids.indexOf(fromId) < 0) {
                                 updateids.push(fromId);
                             }
@@ -1542,7 +1547,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                         //    console.warn(params.attrname + ".handleInverseOperations(): length of ids to be updated by adding differs from length of actual ids: " + updateids.length + " vs. " + actualids.length + ". Will execute update for ids: " + updateids[0]);
                         //}
 
-                        var update = new Object();
+                        var update = {};
                         update[inverseAttr] = updateids;
 
                         console.log("updating toEntity with id: " + toEntity._id + ", re-setting attributes " + mwfUtils.stringify(update));
@@ -1567,7 +1572,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
             return entity._id + "@" + entity.getTypename();
         }
         else {
-            console.error(params.attrname + " createEntityId(): object passed is not an entity: " + mwfUtils.stringify(entity));
+            console.error("createEntityId(): object passed is not an entity: " + mwfUtils.stringify(entity));
         }
     }
 

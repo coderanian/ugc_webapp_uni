@@ -86,7 +86,7 @@ server.listen(port, ip);
 console.log("HTTP server running at http://" + ip + ":" + port);
 
 /*
- * helper methhod for assiging a Content-Type header to http responses
+ * helper method for assiging a Content-Type header to http responses
  */
 function contentType(path) {
     if (path.match('.js$')) {

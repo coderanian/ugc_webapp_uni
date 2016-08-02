@@ -42,7 +42,7 @@ define(function() {
 
 				switch (xmlhttp.readyState) {
 					case 4:
-						console.log("onreadstatechange: request finished and response is ready. Status is: " + xmlhttp.status)
+						console.log("onreadstatechange: request finished and response is ready. Status is: " + xmlhttp.status);
 						// in case we have a request code of 200 OK, we execute the onsuccess function passed as an argument
 						if (xmlhttp.status == 200) {
 							// show how to access a response header

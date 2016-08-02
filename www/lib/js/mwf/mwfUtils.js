@@ -1,4 +1,4 @@
-define(function() {
+define(function () {
 
     console.log("loading module...");
 
@@ -12,8 +12,6 @@ define(function() {
 
         // access the toast element
         var toast = document.querySelector(".mwf-toast");
-        // set the current time on the toast
-        var currenttime = new Date();
         toast.textContent = text;
         toast.classList.toggle("mwf-active");
         setTimeout(function () {
@@ -25,14 +23,38 @@ define(function() {
      * longpress
      *************/
 
-    /* the constants for longpress */
-// we create the functions to be called
+    // we use a timer variable to detect whether we had a longpress
+    var timer;
+
+    function startLongpressReco(element, timeout, event, onLongPress) {
+        console.log("startLongpressReco(): " + event);
+        // we block propagation
+        event.stopPropagation();
+        // then we set the timeout for calling longPress handling
+        timer = window.setTimeout(function () {
+            // we invoke this function that must be provided by the view that uses the longpress handler - i.e. it is a global callback function with a fixed name
+            // this does not really work anymore, allow to pass a function...
+            if (onLongPress) {
+                onLongPress(element);
+            } else {
+                showToast("longpress occurred!");
+            }
+        }, timeout);
+    }
+
+    function cancelLongpressReco() {
+        console.log("cancelLongpressReco()");
+        window.clearTimeout(timer);
+    }
+
+    // we create the functions to be called
     var startReco = function (event) {
         startLongpressReco(this, 1000, event);
-    }
+    };
     var cancelReco = function (event) {
         cancelLongpressReco();
-    }
+    };
+
     /* enable longpress on an element */
     function enableLongpress(element) {
         console.log("enabling longpress on: " + element);
@@ -49,29 +71,6 @@ define(function() {
         console.log("have set longpress handlers on element: " + element);
     }
 
-    // we use a timer variable to detect whether we had a longpress
-    var timer;
-
-    function startLongpressReco(element, timeout, event) {
-        console.log("startLongpressReco(): " + event);
-        // we block propagation
-        event.stopPropagation();
-        // then we set the timeout for calling longPress handling
-        timer = window.setTimeout(function () {
-            // we invoke this function that must be provided by the view that uses the longpress handler - i.e. it is a global callback function with a fixed name
-            if (onLongPress) {
-                onLongPress(element);
-            } else {
-                showToast("longpress occurred!");
-            }
-        }, timeout);
-    }
-
-    function cancelLongpressReco() {
-        console.log("cancelLongpressReco()");
-        window.clearTimeout(timer);
-    }
-
     /***************
      * ui utilities
      ***************/
@@ -82,14 +81,6 @@ define(function() {
     /*
      * cut and paste elements
      */
-    function cutNpasteElementByClassName(klass, target, insertBeforeId) {
-        return cutNpasteElement(document.getElementsByClassName(klass)[0], target, insertBeforeId);
-    }
-
-    function cutNpasteElementById(id, target, insertBeforeId) {
-        return cutNpasteElement(document.getElementById(id), target, insertBeforeId);
-    }
-
     function cutNpasteElement(element, target, insertBeforeId) {
         if (!insertBeforeId) {
             target.appendChild(element);
@@ -100,10 +91,18 @@ define(function() {
         return element;
     }
 
+    function cutNpasteElementByClassName(klass, target, insertBeforeId) {
+        return cutNpasteElement(document.getElementsByClassName(klass)[0], target, insertBeforeId);
+    }
+
+    function cutNpasteElementById(id, target, insertBeforeId) {
+        return cutNpasteElement(document.getElementById(id), target, insertBeforeId);
+    }
+
     function clearNode(element) {
         var fc = element.firstChild;
-        while( fc ) {
-            element.removeChild( fc );
+        while (fc) {
+            element.removeChild(fc);
             fc = element.firstChild;
         }
     }
@@ -112,14 +111,14 @@ define(function() {
      * handlers for touch events
      */
     function cancelSelection(e) {
-        if (e.eventPhase != Event.CAPTURING_PHASE) {
+        if (e.eventPhase !== Event.CAPTURING_PHASE) {
             e.stopPropagation();
-            e.target.classList.remove("mwf-touched")
+            e.target.classList.remove("mwf-touched");
             e.target.classList.remove("mwf-touched-check");
 
-            e.target.removeEventListener("mousedown",cancelSelection);
+            e.target.removeEventListener("mousedown", cancelSelection);
             e.target.removeEventListener("mousemove", cancelSelection);
-            e.target.removeEventListener("touchmove",cancelSelection);
+            e.target.removeEventListener("touchmove", cancelSelection);
             e.target.removeEventListener("touchcancel", cancelSelection);
             e.target.removeEventListener("touchend", cancelSelection);
         }
@@ -129,44 +128,44 @@ define(function() {
     function feedbackTouchOnElement(element) {
 
         /* mouse */
-        element.addEventListener("mousedown",function(e){
-            if (e.eventPhase != Event.CAPTURING_PHASE) {
+        element.addEventListener("mousedown", function (e) {
+            if (e.eventPhase !== Event.CAPTURING_PHASE) {
                 console.log("mousedown: " + element + " in phase: " + e.eventPhase);
                 e.stopPropagation();
 
-                element.addEventListener("mouseup",cancelSelection);
-                element.addEventListener("mousemove",cancelSelection);
+                element.addEventListener("mouseup", cancelSelection);
+                element.addEventListener("mousemove", cancelSelection);
 
                 element.classList.add("mwf-touched-check");
 
-                setTimeout(function(){
+                setTimeout(function () {
                     if (element.classList.contains("mwf-touched-check")) {
                         console.log("mousedown: add mwf-touched to element with mwf-id " + element.getAttribute("data-mwf-id"));
                         element.classList.remove("mwf-touched-check");
                         element.classList.add("mwf-touched");
                     }
-                },touchedcheckTimeout);
+                }, touchedcheckTimeout);
             }
         });
 
         /* touch */
-        element.addEventListener("touchstart",function(e){
-            if (e.eventPhase != Event.CAPTURING_PHASE) {
+        element.addEventListener("touchstart", function (e) {
+            if (e.eventPhase !== Event.CAPTURING_PHASE) {
                 console.log("touchstart: " + element);
                 e.stopPropagation();
                 element.classList.add("mwf-touched-check");
 
-                element.addEventListener("touchmove",cancelSelection);
+                element.addEventListener("touchmove", cancelSelection);
                 element.addEventListener("touchcancel", cancelSelection);
                 element.addEventListener("touchend", cancelSelection);
 
-                setTimeout(function(){
+                setTimeout(function () {
                     if (element.classList.contains("mwf-touched-check")) {
                         console.log("touchstart: add mwf-touched to element with mwf-id " + element.getAttribute("data-mwf-id"));
                         element.classList.remove("mwf-touched-check");
                         element.classList.add("mwf-touched");
                     }
-                },touchedcheckTimeout);
+                }, touchedcheckTimeout);
             }
         });
     }
@@ -179,18 +178,17 @@ define(function() {
     /*
      * check whether some input has been completed by setting a timestamp and checking whether it has changed or not after some timeout
      */
-    function checkInputCompleted(timeout,callback,event) {
+    function checkInputCompleted(timeout, callback, event) {
         var time = Date.now();
-        event.target.setAttribute("data-mwf-last-input",time);
-        setTimeout(function(){
-            if (event.target.getAttribute("data-mwf-last-input") == time) {
+        event.target.setAttribute("data-mwf-last-input", time);
+        setTimeout(function () {
+            if (event.target.getAttribute("data-mwf-last-input") === time) {
                 console.log("inputCompletedListener: no further input occurred after last input. Fire callback");
                 callback.call(this);
-            }
-            else {
+            } else {
                 //console.log("inputCompletedListener: after timeout, data-mwf-last-input has changed: " + time + " vs. " + event.target.getAttribute("data-mwf-last-input"));
             }
-        }.bind(this),timeout);
+        }.bind(this), timeout);
     }
 
     /*
@@ -198,36 +196,32 @@ define(function() {
      */
 
     function startsWith(string, substring) {
-        return string.indexOf(substring) == 0;
-    };
+        return string.indexOf(substring) === 0;
+    }
 
     function endsWith(string, substring) {
-        return string.length >= substring.length && string.substring(string.length - substring.length) == substring;
+        return string.length >= substring.length && string.substring(string.length - substring.length) === substring;
     }
 
-    function substringAfter(string,substring) {
+    function substringAfter(string, substring) {
         if (string.indexOf(substring) > -1) {
-            return string.substring(string.indexOf(substring)+substring.length);
+            return string.substring(string.indexOf(substring) + substring.length);
         }
-        else {
-            return string;
-        }
+        return string;
     }
 
-    function substringBefore(string,substring) {
+    function substringBefore(string, substring) {
         if (string.indexOf(substring) > -1) {
-            return string.substring(0,string.indexOf(substring));
+            return string.substring(0, string.indexOf(substring));
         }
-        else {
-            return string;
-        }
+        return string;
     }
 
     /*
      * OO
      */
     // extend some supertype
-    function xtends(subtype,supertype) {
+    function xtends(subtype, supertype) {
         // set the supertype as prototype (which results in also replacing the constructor)
         subtype.prototype = new supertype();
         // re-set the constructor to the subtype
@@ -241,13 +235,11 @@ define(function() {
     function stringifyObj(obj) {
         var str = "";
 
-        if (obj == null) {
+        if (obj === null) {
             str += "null";
-        }
-        else if (obj == undefined) {
+        } else if (obj === undefined) {
             str += "undefined";
-        }
-        else if (obj && obj.toPojo) {
+        } else if (obj && obj.toPojo) {
             //console.log("stringify: entity");
 
             str += stringifyObj(obj.toPojo());

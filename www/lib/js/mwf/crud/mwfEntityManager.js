@@ -7,7 +7,8 @@
  * TODO: allow to clone an entity in order to support edit/undo actions at UI level
  * TODO: allow for more efficient handling of entity references by allowing crud implementations to implement add/removeReference(fromType,fromId,fromAttr,toType,toId,bidir) and only using the current solution if the function is not implemented (currently: adding/removing references requires that both parts of an association are completely loaded as references are persisted as arrays on the objects)
  */
-define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
+/*jslint nomen: true*/
+define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
 
     console.log("loading module...");
 
@@ -53,7 +54,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
         };
 
         // reset the crud operations, resulting in clearing the internally represented entities
-        this.resetCRUD = function(entitytype,entitycrudops) {
+        this.resetCRUD = function (entitytype, entitycrudops) {
             console.log("resetCRUD(): " + entitytype);
             crudops[entitytype] = entitycrudops;
             entities[entitytype] = {};
@@ -65,18 +66,16 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
         };
 
         // allow to access crudops
-        this.getCRUD = function(entitytype) {
+        this.getCRUD = function (entitytype) {
             return crudops[entitytype];
         };
 
-        this.addTypedef = function(typedef,typename) {
+        this.addTypedef = function (typedef, typename) {
             if (typedef.prototype.getTypename) {
                 entityTypedefs[typedef.prototype.getTypename()] = typedef;
-            }
-            else if (!typename) {
+            } else if (!typename) {
                 console.error("inconsistent datamodel. Got typedef which does not seem to be an entity type, and no typename is specified: " + typedef);
-            }
-            else {
+            } else {
                 console.log("adding typedef for non-entity type: " + typename);
                 entityTypedefs[typename] = typedef;
             }
@@ -87,17 +86,109 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
             if (!initialised) {
                 console.log("EntityManager has not yet been initialised. Run...");
                 // TODO: the forllowing foreach functions should be looked at
-                allManagedAttributes.forEach(function(attrs,type){
-                    attrs.forEach(function(params,attr){
-                        type.prototype.addManagedAttributeToType(type,attr,params.attrtypename,params);
+                allManagedAttributes.forEach(function (attrs, type){
+                    attrs.forEach(function (params, attr) {
+                        type.prototype.addManagedAttributeToType(type, attr, params.attrtypename, params);
                     });
                 });
                 initialised = true;
-            }
-            else {
+            } else {
                 console.warn("EntityManager has already been initialised! This function should only called once!");
             }
         };
+
+        /*
+         * check whether the em has been initialised
+         */
+        function checkInitialised() {
+            if (!initialised) {
+                console.error("EntityManager has not been initialised yet! It is very likely that the application will not work!");
+            }
+        }
+
+        /*
+         * check whether crudops are specified for some entitytype
+         */
+        function checkCrudops(entitytype) {
+            if (!crudops[entitytype]) {
+                var msg = "Cannot run crudops for entitytype " + entitytype + ". No crudops registered so far. Crudops are: " + JSON.stringify(crudops);
+                console.error(msg);
+                throw new Error(msg);
+            }
+        }
+
+        function pojoToEntity(pojo,callback,useEntity) {
+            console.log("pojoToEntity()");
+            // check whether we have a typename attribute
+            var typename = pojo[typenameAttr];
+            console.log("pojoToEntity(): typename (from attr " + typenameAttr + "): " + typename);
+            var entity;
+            if (typename) {
+                // this allows us to preserve referential identity of objects before and after creation!!!
+                if (useEntity) {
+                    entity = useEntity;
+                }
+                else {
+                    entity = new entityTypedefs[typename]();
+                }
+                // check whether we have an instance of an entity
+                if (entity instanceof Entity) {
+                    console.log("pojoToEntity(): type of pojo is an entity type: " + typename + ". Call fromPojo(), then postLoad()");
+                    entity.fromPojo(pojo);
+
+                    // we add the entity to the local representation befor calling postLoad -> this way we should omit recursion in case of bidirectional assocs
+                    if (!entities[typename][entity._id]) {
+                        console.log("++++++ adding entity with id " + entity._id + " to managed entities of type " + typename);
+                        entities[typename][entity._id] = entity;
+                        entityarrays[typename].values.push(entity);
+                    }
+
+                    entity.postLoad(function(){
+                        // here we check whether an entity of the given id already exists
+                        var existingEntity = entities[typename][entity._id];
+                        if (existingEntity) {
+                            console.log("pojoToEntity(): entity " + entity._id + "@" + typename + " already exists. Merge output of fromPojo().postLoad() into the entity");
+                            for (var attr in entity) {
+                                existingEntity[attr] = entity[attr];
+                            }
+                            callback(existingEntity);
+                        }
+                        else {
+                            callback(entity);
+                        }
+                    })
+                }
+                else {
+                    console.log("pojoToEntity(): type of pojo is not an entity type: " + typename + ". Just copy attributes of pojo to instance.");
+                    for (var attr in pojo) {
+                        entity[attr] = pojo[attr];
+                    }
+                    callback(entity);
+                }
+            }
+            else {
+                console.log("pojoToEntity(): no typename specified. Just return pojo.");
+                entity = pojo;
+                callback(entity);
+            }
+        }
+
+        /*
+         * notify about the result of a crud operation by using the eventdispatcher and/or calling a callback
+         */
+        function notify(entitytype,eventtype,result,callback) {
+            if (entityCRUDDispatching[entitytype] && eventtype != "read" && eventtype != "readAll") {
+                console.log("notify(): will dispatch crud event " + eventtype + "@" + entitytype);
+                eventhandling.notifyListeners(new eventhandling.Event("crud",eventtype,entitytype,result));
+            }
+            if (callback) {
+                console.log("notify(): done dispatching crud event " + eventtype + "@" + entitytype + ". Now invoking callback.");
+                callback(result);
+            }
+            else {
+                console.log("notify(): done dispatching crud event " + eventtype + "@" + entitytype + ". No further callback specified.");
+            }
+        }
 
         this.create = function (entitytype, entity, callback) {
             checkInitialised();
@@ -121,7 +212,8 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                 entity.clear();
                 pojoToEntity(created, function(createdEntity) {
                     notify(entitytype,"created",createdEntity,callback);
-                }.bind(this), entity)}.bind(this));
+                }.bind(this), entity);
+            }.bind(this));
         };
 
 
@@ -261,62 +353,6 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
             });
         };
 
-        function pojoToEntity(pojo,callback,useEntity) {
-            console.log("pojoToEntity()");
-            // check whether we have a typename attribute
-            var typename = pojo[typenameAttr];
-            console.log("pojoToEntity(): typename (from attr " + typenameAttr + "): " + typename);
-            var entity;
-            if (typename) {
-                // this allows us to preserve referential identity of objects before and after creation!!!
-                if (useEntity) {
-                    entity = useEntity;
-                }
-                else {
-                    entity = new entityTypedefs[typename]();
-                }
-                // check whether we have an instance of an entity
-                if (entity instanceof Entity) {
-                    console.log("pojoToEntity(): type of pojo is an entity type: " + typename + ". Call fromPojo(), then postLoad()");
-                    entity.fromPojo(pojo);
-
-                    // we add the entity to the local representation befor calling postLoad -> this way we should omit recursion in case of bidirectional assocs
-                    if (!entities[typename][entity._id]) {
-                        console.log("++++++ adding entity with id " + entity._id + " to managed entities of type " + typename);
-                        entities[typename][entity._id] = entity;
-                        entityarrays[typename].values.push(entity);
-                    }
-
-                    entity.postLoad(function(){
-                        // here we check whether an entity of the given id already exists
-                        var existingEntity = entities[typename][entity._id];
-                        if (existingEntity) {
-                            console.log("pojoToEntity(): entity " + entity._id + "@" + typename + " already exists. Merge output of fromPojo().postLoad() into the entity");
-                            for (var attr in entity) {
-                                existingEntity[attr] = entity[attr];
-                            }
-                            callback(existingEntity);
-                        }
-                        else {
-                            callback(entity);
-                        }
-                    })
-                }
-                else {
-                    console.log("pojoToEntity(): type of pojo is not an entity type: " + typename + ". Just copy attributes of pojo to instance.");
-                    for (var attr in pojo) {
-                        entity[attr] = pojo[attr];
-                    }
-                    callback(entity);
-                }
-            }
-            else {
-                console.log("pojoToEntity(): no typename specified. Just return pojo.");
-                entity = pojo;
-                callback(entity);
-            }
-        }
-
         this.read = function (entitytype, entityid, callback) {
             checkInitialised();
             checkCrudops(entitytype);
@@ -408,23 +444,6 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
             checkInitialised();
             return new entityTypedefs[entitytype]();
         };
-
-        /*
-         * notify about the result of a crud operation by using the eventdispatcher and/or calling a callback
-         */
-        function notify(entitytype,eventtype,result,callback) {
-            if (entityCRUDDispatching[entitytype] && eventtype != "read" && eventtype != "readAll") {
-                console.log("notify(): will dispatch crud event " + eventtype + "@" + entitytype);
-                eventhandling.notifyListeners(new eventhandling.Event("crud",eventtype,entitytype,result));
-            }
-            if (callback) {
-                console.log("notify(): done dispatching crud event " + eventtype + "@" + entitytype + ". Now invoking callback.");
-                callback(result);
-            }
-            else {
-                console.log("notify(): done dispatching crud event " + eventtype + "@" + entitytype + ". No further callback specified.");
-            }
-        }
 
         /*
          * this implementation is kindof clumpsy... note that in most cases it will only be called once for each entitytype, though...
@@ -527,26 +546,6 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
         function mergeEntity(base, update) {
             for (var key in update) {
                 base[key] = update[key];
-            }
-        }
-
-        /*
-         * check whether crudops are specified for some entitytype
-         */
-        function checkCrudops(entitytype) {
-            if (!crudops[entitytype]) {
-                var msg = "Cannot run crudops for entitytype " + entitytype + ". No crudops registered so far. Crudops are: " + JSON.stringify(crudops);
-                console.error(msg);
-                throw new Error(msg);
-            }
-        }
-
-        /*
-         * check whether the em has been initialised
-         */
-        function checkInitialised() {
-            if (!initialised) {
-                console.error("EntityManager has not been initialised yet! It is very likely that the application will not work!");
             }
         }
 
@@ -773,7 +772,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
 
         if (!params.multiple) {
             //Object.defineProperty(type.prototype,attrManager,{
-            //    value: new ManagedEntity()
+            // value: new ManagedEntity()
             //});
             Object.defineProperty(type.prototype,attrname,{
                 get: function() {
@@ -793,7 +792,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
         }
         else {
             //Object.defineProperty(type.prototype,attrManager,{
-            //    value: new ManagedEntitiesArray()
+            // value: new ManagedEntitiesArray()
             //});
             Object.defineProperty(type.prototype,attrname,{
                 get: function() {
@@ -960,39 +959,39 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
         // THIS WOULD ONLY BE NECESSARY IF WE ALLOWED FOR CASCADED CREATE! CURRENTLY ALL ENTITIES THAT MIGHT BE ADDED TO A MANAGED ATTRIBUTE NEED TO HAVE BEEN CREATED BEFORE!!!
         var twostepCreate;
         //for (var attr in this.managedAttributes) {
-        //    if (this.managedAttributes[attr].inverse) {
-        //        var attrManager = attr + "Manager";
-        //        if (this.managedAttributes[attr].multiple && this[attrManager].entities().length > 0) {
-        //            console.log("Entity.create(): we have a non empty inverse attribute: " + attr + ". Do twostep creation");
-        //            twostepCreate = true;
-        //            break;
-        //        }
-        //        else if (!this.managedAttributes[attr].multiple && this[attrManager].entity()) {
-        //            console.log("Entity.create(): we have a non empty inverse attribute: " + attr + ". Do twostep creation");
-        //            twostepCreate = true;
-        //            break;
-        //        }
-        //    }
+        // if (this.managedAttributes[attr].inverse) {
+        //  var attrManager = attr + "Manager";
+        //  if (this.managedAttributes[attr].multiple && this[attrManager].entities().length > 0) {
+        //   console.log("Entity.create(): we have a non empty inverse attribute: " + attr + ". Do twostep creation");
+        //   twostepCreate = true;
+        //   break;
+        //  }
+        //  else if (!this.managedAttributes[attr].multiple && this[attrManager].entity()) {
+        //   console.log("Entity.create(): we have a non empty inverse attribute: " + attr + ". Do twostep creation");
+        //   twostepCreate = true;
+        //   break;
+        //  }
+        // }
         //}
         //
         //if (twostepCreate) {
-        //    // move all attributes outside
-        //    var content = em.newInstanceOfType(this.getTypename());
-        //    for (var attr in this) {
-        //        content[attr] = this[attr];
-        //        delete this[attr];
-        //    }
-        //    // create the entity
-        //    em.create(this.getTypename(),this,function(){
-        //        console.log("Entity.create(): twostep creation: assigned id: " + this._id + ". Now update with content");
-        //        em.update(this.getTypename(),this._id,content,function(updated){
-        //            console.log("Entity.create(): twostep creation: done.");
-        //           callback(this);
-        //        }.bind(this));
-        //    }.bind(this));
+        // // move all attributes outside
+        // var content = em.newInstanceOfType(this.getTypename());
+        // for (var attr in this) {
+        //  content[attr] = this[attr];
+        //  delete this[attr];
+        // }
+        // // create the entity
+        // em.create(this.getTypename(),this,function(){
+        //  console.log("Entity.create(): twostep creation: assigned id: " + this._id + ". Now update with content");
+        //  em.update(this.getTypename(),this._id,content,function(updated){
+        //   console.log("Entity.create(): twostep creation: done.");
+        //   callback(this);
+        //  }.bind(this));
+        // }.bind(this));
         //}
         //else {
-        //    console.log("Entity.create(): twostep creation is not necessary for given instance of " + this.getTypename());
+        // console.log("Entity.create(): twostep creation is not necessary for given instance of " + this.getTypename());
 
         // we need to check the inverse actions before running create as managers will be reset afterwards
         console.log(this.getTypename() + ".create()");
@@ -1145,7 +1144,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
         this.entity = function() {
             console.log("entity()");
             return entityobj;
-        }
+        };
 
         /*
          * the second parameter indicates that a lazily loaded attributes shall finally be loaded
@@ -1537,14 +1536,14 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                                 updateids.splice(index, 1);
                             }
                             //else {
-                            //    console.warn("toEntity to run inverse removal did not contain fromEntity onload");
+                            // console.warn("toEntity to run inverse removal did not contain fromEntity onload");
                             //}
                         }
                         //var actualids = currentManager.getIds();
 
                         //// TODO: this could be handled more flexibly? Maybe just check whether the id is / is not contained in the current ids?
                         //if (updateids.length != actualids.length) {
-                        //    console.warn(params.attrname + ".handleInverseOperations(): length of ids to be updated by adding differs from length of actual ids: " + updateids.length + " vs. " + actualids.length + ". Will execute update for ids: " + updateids[0]);
+                        // console.warn(params.attrname + ".handleInverseOperations(): length of ids to be updated by adding differs from length of actual ids: " + updateids.length + " vs. " + actualids.length + ". Will execute update for ids: " + updateids[0]);
                         //}
 
                         var update = {};
@@ -1601,3 +1600,4 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
     };
 
 });
+/*jslint nomen: false*/

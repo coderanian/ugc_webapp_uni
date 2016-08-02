@@ -1165,7 +1165,7 @@ define([ "mwfUtils","eventhandling","EntityManager"], function ( mwfUtils, event
         this.observe = function(path,onchange) {
             return ractive.observe(path,onchange);
         }
-        
+
     }
 
     function applyDatabinding(root, body, data) {

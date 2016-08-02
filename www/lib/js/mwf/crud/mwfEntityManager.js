@@ -13,10 +13,11 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
 
     var allManagedAttributes = new Map();
 
+    var typenameAttr = "@typename";
+
     function EntityManager() {
 
         // TODO: rather than using single maps, at least parts of them could be consolidated at some moment...
-
         // a map of crud operations implementations for each entity type
         var crudops = new Object();
 
@@ -61,6 +62,11 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                 values: new Array(),
                 syncedWithDatasource: false
             };
+        }
+
+        // allow to access crudops
+        this.getCRUD = function(entitytype) {
+            return crudops[entitytype];
         }
 
         this.addTypedef = function(typedef,typename) {
@@ -117,6 +123,34 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                 }.bind(this), entity)}.bind(this));
         }
 
+
+        // this wil be called on two different occasions below (we moved it outside of update() as it is also used in refresh())
+        function mergeUpdate(entitytype, entityid, update) {
+            // we will add the update attributes to our local copy of the entity
+            var currentEntity = entities[entitytype][entityid];
+
+            console.log("mergeUpdate(): existing: " + mwfUtils.stringify(currentEntity.toPojo()));
+            console.log("mergeUpdate(): update: " + mwfUtils.stringify(update.toPojo()));
+
+            if (!currentEntity) {
+                console.error("update(): cannot be carried out for entity of type " + entitytype + " and id: " + entityid + ". Entity is unknown to EntityManager!");
+                return update;
+            }
+            else {
+                for (key in update) {
+                    var value = update[key];
+                    // we must not override the id!!! ... and we should not override keys with null values!
+                    // TODO: there should be some solution to deal with deletion/resetting of values
+                    if (value && key != "_id") {
+                        currentEntity[key] = value;
+                    }
+                }
+            }
+            console.log("mergeUpdate(): merged: " + mwfUtils.stringify(currentEntity.toPojo()));
+            return currentEntity;
+        }
+
+
         this.update = function (entitytype, entityid, update, callback, noentity) {
             checkInitialised();
             checkCrudops(entitytype);
@@ -143,32 +177,6 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                 tobeupdated = update;
             }
 
-            // this wil be called on two different occasions below
-            function mergeUpdate(entityid, update) {
-                // we will add the update attributes to our local copy of the entity
-                var currentEntity = entities[entitytype][entityid];
-
-                console.log("mergeUpdate(): existing: " + mwfUtils.stringify(currentEntity.toPojo()));
-                console.log("mergeUpdate(): update: " + mwfUtils.stringify(update.toPojo()));
-
-                if (!currentEntity) {
-                    console.error("update(): cannot be carried out for entity of type " + entitytype + " and id: " + entityid + ". Entity is unknown to EntityManager!");
-                    return update;
-                }
-                else {
-                    for (key in update) {
-                        var value = update[key];
-                        // we must not override the id!!! ... and we should not override keys with null values!
-                        // TODO: there should be some solution to deal with deletion/resetting of values
-                        if (value && key != "_id") {
-                            currentEntity[key] = value;
-                        }
-                    }
-                }
-                console.log("mergeUpdate(): merged: " + mwfUtils.stringify(currentEntity.toPojo()));
-                return currentEntity;
-            }
-
             crudops[entitytype].update(entityid, tobeupdated, function (updated) {
                 if (updated) {
                     // once the update is done, we instantiate a new entity of the given type, run fromPojo() and merge the result with the existing entity
@@ -177,7 +185,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                         updatedAttrs = new entityTypedefs[entitytype]();
                         updatedAttrs.fromPojo(tobeupdated);
                         updatedAttrs.postLoad(function(){
-                            var updatedEntity = mergeUpdate(entityid,updatedAttrs);
+                            var updatedEntity = mergeUpdate(entitytype, entityid,updatedAttrs);
                             notify(entitytype,"updated",updatedEntity,callback);
                         });
                     }
@@ -190,6 +198,39 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                 }
                 else {
                     console.warn("update(): crudop failed for entity of type " + entitytype + " and id: " + entityid);
+                    if (callback) {
+                        callback(null);
+                    }
+
+                }
+            }.bind(this));
+        }
+
+        this.refresh = function (entitytype, entityid, callback, noentity) {
+            checkInitialised();
+            checkCrudops(entitytype);
+
+            crudops[entitytype].read(entityid, function (refreshed) {
+                if (refreshed) {
+                    // once the read is done, we instantiate a new entity of the given type, run fromPojo() and merge the result with the existing entity
+                    var refreshedAttrs;
+                    if (entityTypedefs[entitytype]) {
+                        refreshedAttrs = new entityTypedefs[entitytype]();
+                        refreshedAttrs.fromPojo(refreshed);
+                        refreshedAttrs.postLoad(function(){
+                            var refreshedEntity = mergeUpdate(entitytype, entityid,refreshedAttrs);
+                            notify(entitytype,"refreshed",refreshedEntity,callback);
+                        });
+                    }
+                    else {
+                        refreshedAttrs = refreshed;
+                        // we add the id
+                        refreshedAttrs._id = entityid;
+                        notify(entitytype,"refreshed",refreshedAttrs,callback);
+                    }
+                }
+                else {
+                    console.warn("refresh(): crudop failed for entity of type " + entitytype + " and id: " + entityid);
                     if (callback) {
                         callback(null);
                     }
@@ -221,8 +262,8 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
         function pojoToEntity(pojo,callback,useEntity) {
             console.log("pojoToEntity()");
             // check whether we have a typename attribute
-            var typename = pojo["@typename"];
-            console.log("pojoToEntity(): typename: " + typename);
+            var typename = pojo[typenameAttr];
+            console.log("pojoToEntity(): typename (from attr " + typenameAttr + "): " + typename);
             var entity;
             if (typename) {
                 // this allows us to preserve referential identity of objects before and after creation!!!
@@ -813,7 +854,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
 
             var val = pojo[attr];
 
-            if (val) {
+            if (val != null && val != undefined) {
                 // we need to consider whether the attribute is a managed attribute
                 var managed = this.managedAttributes[attr];
                 if (managed) {
@@ -870,7 +911,7 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
         var pojo = new Object();
 
         // first of all, we add the type
-        pojo["@typename"] = this.getTypename();
+        pojo[typenameAttr] = this.getTypename();
         //console.log(this.getTypename() + ".toPojo()");
 
         // it seems that the managed attributes are not returned when iterating because they are declared by getters!
@@ -965,6 +1006,11 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
 
     };
 
+    // let entities access crud in order to implement custom operations!
+    Entity.prototype.getCRUD = function() {
+        return em.getCRUD(this.getTypename());
+    }
+
     function prepareInverseOperations() {
         var managers = new Array();
         for (var attr in this.managedAttributes) {
@@ -1007,6 +1053,17 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
                     callback(this);
                 }
             }.bind(this));
+        }.bind(this));
+
+    };
+
+    Entity.prototype.refresh = function(callback) {
+        console.log(this.getTypename() + ".refresh(): " + this._id);
+
+        em.refresh(this.getTypename(),this._id,function(){
+            if (callback) {
+                callback(this);
+            }
         }.bind(this));
 
     };
@@ -1198,12 +1255,12 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
             checkConsistency();
             var ids = new Array();
             this.getIds().forEach(function(id){
-               if (segmentId(id).id > 0) {
-                   ids.push(id);
-               }
-               else {
-                   console.log(params.attrname + ".getNonTransientIds(): ignore transient id: " + id);
-               }
+                if (segmentId(id).id > 0) {
+                    ids.push(id);
+                }
+                else {
+                    console.log(params.attrname + ".getNonTransientIds(): ignore transient id: " + id);
+                }
             });
             return ids;
         }
@@ -1519,6 +1576,11 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
         return {id: (isNaN(segments[0]) ? segments[0] : parseInt(segments[0])), typename: segments[1]}
     }
 
+    function setTypenameAttr(name) {
+        console.log("setting typename attr: " + name);
+        typenameAttr = name;
+    }
+
     return {
         resetCRUD: em.resetCRUD,
         xtends: xtends,
@@ -1529,7 +1591,8 @@ define(["mwfUtils","eventhandling"], function (mwfUtils,eventhandling) {
         initialise: em.initialise,
         resetEntities: em.resetEntities,
         segmentId: segmentId,
-        createId: createEntityId
+        createId: createEntityId,
+        setTypenameAttr: setTypenameAttr
     };
 
 });

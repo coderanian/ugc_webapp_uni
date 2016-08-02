@@ -241,7 +241,13 @@ define(function() {
     function stringifyObj(obj) {
         var str = "";
 
-        if (obj && obj.toPojo) {
+        if (obj == null) {
+            str += "null";
+        }
+        else if (obj == undefined) {
+            str += "undefined";
+        }
+        else if (obj && obj.toPojo) {
             //console.log("stringify: entity");
 
             str += stringifyObj(obj.toPojo());

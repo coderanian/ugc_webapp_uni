@@ -179,7 +179,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
          * notify about the result of a crud operation by using the eventdispatcher and/or calling a callback
          */
         function notify(entitytype,eventtype,result,callback) {
-            if (entityCRUDDispatching[entitytype] && eventtype !== "read" && eventtype !== "readAll") {
+            if (entityCRUDDispatching[entitytype] && eventtype != "read" && eventtype != "readAll") {
                 console.log("notify(): will dispatch crud event " + eventtype + "@" + entitytype);
                 eventhandling.notifyListeners(new eventhandling.Event("crud",eventtype,entitytype,result));
             }
@@ -252,7 +252,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
                                 // as a side-effect, pojoToEntity will call postLoad and add the entity to the local entities of the given type!
                                 pojoToEntity(currentObj, function () {
                                     count++;
-                                    if (count === total.length) {
+                                    if (count == total.length) {
                                         entityarrays[entitytype].syncedWithDatasource = true;
                                         console.log("syncWithDatasource(): postLoad has been executed for all read entities");
                                         callback(entityarrays[entitytype].values);
@@ -274,7 +274,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
                                 // as a side-effect, pojoToEntity will call postLoad and add the entity to the local entities of the given type!
                                 pojoToEntity(currentObj,function(){
                                     countdown--;
-                                    if (countdown === 0) {
+                                    if (countdown == 0) {
                                         entityarrays[entitytype].syncedWithDatasource = true;
                                         console.log("syncWithDatasource(): postLoad has been executed for all read entities");
                                         callback(entityarrays[entitytype].values);
@@ -344,7 +344,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
                     value = update[key];
                     // we must not override the id!!! ... and we should not override keys with null values!
                     // TODO: there should be some solution to deal with deletion/resetting of values
-                    if (value && key !== "_id") {
+                    if (value && key != "_id") {
                         currentEntity[key] = value;
                     }
                 }
@@ -732,7 +732,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
         function lookupEntitypos(obj) {
             var i;
             for (i=0;i<entityobjs.length;i++) {
-                if (entityobjs[i]._id === obj._id) {
+                if (entityobjs[i]._id == obj._id) {
                     return i;
                 }
             }
@@ -742,7 +742,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
         function lookupEntityposForId(objid) {
             var i;
             for (i=0;i<entityobjs.length;i++) {
-                if (entityobjs[i]._id === objid) {
+                if (entityobjs[i]._id == objid) {
                     return i;
                 }
             }
@@ -750,7 +750,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
         }
 
         function checkConsistency() {
-            if (entityids.length !== entityobjs.length) {
+            if (entityids.length != entityobjs.length) {
                 console.error(params.attrname + ": inconsistent state of entity: ids vs. objs arrays differ in " + (loaded ? " LOADED " : " UNLOADED ") + " state: " + entityids + " vs." + entityobjs);
             }
         }
@@ -823,7 +823,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
             }
             else {
                 // if both arrays are empty, we return immediately
-                if (!loaded && entityids.length === 0) {
+                if (!loaded && entityids.length == 0) {
                     console.log(params.type + ".load(): no entity references seem to exist");
                     loaded = true;
                     callback(entityobjs);
@@ -845,7 +845,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
                         em.read(currentId.typename, currentId.id, function (read) {
                             entityobjs.push(read);
                             countdown--;
-                            if (countdown === 0) {
+                            if (countdown == 0) {
                                 console.log(params.type + ".load(): done loading.");
                                 loaded = true;
                                 callback(entityobjs);
@@ -861,7 +861,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
             checkConsistency(this);
             console.log(params.attrname + ".pushEntityref(): " + entityid);
             if (!loaded) {
-                if (entityids.indexOf(entityid) === -1) {
+                if (entityids.indexOf(entityid) == -1) {
                     entityids.push(entityid);
                     // try out with adding a dummy object to the array that takes the id. load() will result in these objects being replaced by the actual entities
                     entityobjs.push({_id: entityid});
@@ -880,7 +880,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
             checkConsistency();
             console.log(params.attrname + ".push(): " + entity +  " with id: " + entity._id);
             // push does not distinguish between loaded and not loaded
-            if (entityobjs.indexOf(entity) === -1) {
+            if (entityobjs.indexOf(entity) == -1) {
                 entityobjs.push(entity);
                 entityids.push(createId(entity));
                 addPendingInverse.call(this,entity);
@@ -913,7 +913,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
         this.removeObj = function(obj) {
             checkConsistency();
             console.log(params.attrname + ".removeObj(): " + obj);
-            if (typeof obj !== "object") {
+            if (typeof obj != "object") {
                 console.error("removeObj() should be passed an object. Ignore call passing: " + obj);
             }
             else {
@@ -999,14 +999,14 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
                 function docountdown() {
                     countdown--;
                     console.log("docountdown(): " + countdown);
-                    if (countdown === 0) {
+                    if (countdown == 0) {
                         callback();
                     }
                 }
 
                 console.log(params.attrname + ".handleInverseOperations(): will run " + inverseOperations.length + " operations for entity " + fromEntity._id);
 
-                if (countdown === 0) {
+                if (countdown == 0) {
                     callback();
                 }
                 else {
@@ -1072,7 +1072,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
     function isProtectedMember(attr) {
         //console.log("isProtectedMember: " + attr + ": type is: " + (typeof this[attr]) + ", this: " + this._id);
 
-        return (mwfUtils.endsWith(attr,"Manager")|| attr === "managedAttributes" || attr === "constructor" || attr === "toPojo" ||  typeof this[attr] === "function");
+        return (mwfUtils.endsWith(attr,"Manager")|| attr == "managedAttributes" || attr == "constructor" || attr == "toPojo" ||  typeof this[attr] == "function");
     }
 
     function Entity() {
@@ -1086,7 +1086,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
     Object.defineProperty(Entity.prototype,"created",{
         get: function() {
             // well, we need to check whether we either have a string (which is the case if the id has been assigned by mdb) or whether the id is greater than -1
-            return (typeof this._id === "string") || (this._id > -1);
+            return (typeof this._id == "string") || (this._id > -1);
         }
     });
 
@@ -1119,7 +1119,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
         var attrsCountdown = Object.keys(this.managedAttributes).length;
 
 
-        if (attrsCountdown === 0) {
+        if (attrsCountdown == 0) {
             console.log("postLoad(): entity does not have managed attributes. Invoke callback.");
             callback(this);
         }
@@ -1130,7 +1130,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
                 attrManager = attr + "Manager";
                 this[attrManager].load(function () {
                     attrsCountdown--;
-                    if (attrsCountdown === 0) {
+                    if (attrsCountdown == 0) {
                         // we pass the entity itself as argument to the callback function
                         callback(this);
                     }
@@ -1141,7 +1141,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
 
     // a helper function that creates an initial uppercase singular version from some typename
     function singularise(attrname) {
-        if (attrname.substring(attrname.length-1) !== "s") {
+        if (attrname.substring(attrname.length-1) != "s") {
             console.warn("singularise(): got non plural attrname for presumed multiple attribute: " + attrname + "/" + attrname.substring(attrname.length-2) + ". Will not manipulate...");
             return attrname;
         }
@@ -1167,7 +1167,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
     function handleInverseOperations(managers, callback, calledFromDelete) {
         var countdown = managers.length;
 
-        if (countdown === 0) {
+        if (countdown == 0) {
             if (callback) {
                 callback();
             }
@@ -1176,7 +1176,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
             managers.forEach(function (manager) {
                 manager.handleInverseOperations(this, function () {
                     countdown--;
-                    if (countdown === 0 && callback) {
+                    if (countdown == 0 && callback) {
                         callback();
                     }
                 }.bind(this), calledFromDelete);
@@ -1333,7 +1333,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
         // lookup the index
         var index = -1, i;
         for (i = 0; i < arr.length; i++) {
-            if (arr[i]._id === entityid) {
+            if (arr[i]._id == entityid) {
                 index = i;
                 break;
             }
@@ -1349,7 +1349,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
     Entity.prototype.lookupEntityref = function (arr, entityid) {
         var i;
         for (i = 0; i < arr.length; i++) {
-            if (arr[i]._id === entityid) {
+            if (arr[i]._id == entityid) {
                 return arr[i];
             }
         }
@@ -1364,7 +1364,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
 
             val = pojo[attr];
 
-            if (val !== null && val !== undefined) {
+            if (val != null && val != undefined) {
                 // we need to consider whether the attribute is a managed attribute
                 managed = this.managedAttributes[attr];
                 if (managed) {
@@ -1375,7 +1375,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
                         // TODO: here we could check whether we actually have an array value
                         // check whether the value is an object or not (i.e. an id)
                         if (val.length > 0) {
-                            if (typeof val[0] === "object") {
+                            if (typeof val[0] == "object") {
                                 // normally, we will have ids here, as fromPojo will be called with raw datasource output
                                 val.forEach(function(obj){
                                     // here, it is ok to use the mutable variable
@@ -1390,7 +1390,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
                         }
                     }
                     else {
-                        if (typeof val === "object") {
+                        if (typeof val == "object") {
                             this[managedAttr].set(val);
                         }
                         else {
@@ -1431,7 +1431,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
                 val = this[attr];
                 //console.log("handling member: " + attr + "=" + val);
 
-                if (val !== null) {
+                if (val != null) {
                     //console.log("toPojo(): will not include attribute with null/undefined value: " + attr);
                     pojo[attr] = val;
                 }
@@ -1576,7 +1576,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
     function xtends(base,supertype) {
         mwfUtils.xtends(base,supertype);
 
-        if (supertype.prototype instanceof Entity || supertype === Entity) {
+        if (supertype.prototype instanceof Entity || supertype == Entity) {
             base.read = function(entityid,callback) {
                 (new base()).read(entityid,callback);
             };

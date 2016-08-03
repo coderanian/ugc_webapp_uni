@@ -111,7 +111,7 @@ define(function () {
      * handlers for touch events
      */
     function cancelSelection(e) {
-        if (e.eventPhase !== Event.CAPTURING_PHASE) {
+        if (e.eventPhase != Event.CAPTURING_PHASE) {
             e.stopPropagation();
             e.target.classList.remove("mwf-touched");
             e.target.classList.remove("mwf-touched-check");
@@ -129,7 +129,7 @@ define(function () {
 
         /* mouse */
         element.addEventListener("mousedown", function (e) {
-            if (e.eventPhase !== Event.CAPTURING_PHASE) {
+            if (e.eventPhase != Event.CAPTURING_PHASE) {
                 console.log("mousedown: " + element + " in phase: " + e.eventPhase);
                 e.stopPropagation();
 
@@ -150,7 +150,7 @@ define(function () {
 
         /* touch */
         element.addEventListener("touchstart", function (e) {
-            if (e.eventPhase !== Event.CAPTURING_PHASE) {
+            if (e.eventPhase != Event.CAPTURING_PHASE) {
                 console.log("touchstart: " + element);
                 e.stopPropagation();
                 element.classList.add("mwf-touched-check");
@@ -182,7 +182,7 @@ define(function () {
         var time = Date.now();
         event.target.setAttribute("data-mwf-last-input", time);
         setTimeout(function () {
-            if (event.target.getAttribute("data-mwf-last-input") === time) {
+            if (event.target.getAttribute("data-mwf-last-input") == time) {
                 console.log("inputCompletedListener: no further input occurred after last input. Fire callback");
                 callback.call(this);
             } else {
@@ -196,11 +196,11 @@ define(function () {
      */
 
     function startsWith(string, substring) {
-        return string.indexOf(substring) === 0;
+        return string.indexOf(substring) == 0;
     }
 
     function endsWith(string, substring) {
-        return string.length >= substring.length && string.substring(string.length - substring.length) === substring;
+        return string.length >= substring.length && string.substring(string.length - substring.length) == substring;
     }
 
     function substringAfter(string, substring) {
@@ -236,9 +236,9 @@ define(function () {
         var str = "";
         var i;
 
-        if (obj === null) {
+        if (obj == null) {
             str += "null";
-        } else if (obj === undefined) {
+        } else if (obj == undefined) {
             str += "undefined";
         } else if (obj && obj.toPojo) {
             //console.log("stringify: entity");
@@ -256,7 +256,7 @@ define(function () {
             }
             str += "]";
         }
-        else if (typeof obj === "object") {
+        else if (typeof obj == "object") {
             //console.log("stringify: object");
             str += "{";
             var length = Object.keys(obj).length;
@@ -272,11 +272,11 @@ define(function () {
             }
             str += "}";
         }
-        else if (typeof obj === "string" && startsWith(obj,"data")) {
+        else if (typeof obj == "string" && startsWith(obj,"data")) {
             //console.log("stringify: dataUrl");
             str += "(dataUrl disclosed)";
         }
-        else if (typeof obj === "function") {
+        else if (typeof obj == "function") {
             //console.log("stringify: function");
             str += "(function disclosed)";
         }
@@ -293,7 +293,7 @@ define(function () {
         var attr, currentVal;
         for (attr in obj) {
             currentVal = obj[attr];
-            if (attr !== "_id" && typeof currentVal !== "function") {
+            if (attr != "_id" && typeof currentVal != "function") {
                 clone[attr] = currentVal;
             }
         }

@@ -48,7 +48,7 @@ define(function () {
                 }
 
                 // check whether the event type contains a "|" symbol that identifies more than a single event
-                if (event.type.indexOf("|") !== -1) {
+                if (event.type.indexOf("|") != -1) {
                     console.log("event specifies a disjunction of types: " + event.type + ". Will add a listener for each concrete type");
                     var etypes = event.type.split("|");
                     var i;
@@ -107,7 +107,7 @@ define(function () {
                     currentListeners = eventListeners[evt];
                     counter = 0;
                     while (counter < currentListeners.length) {
-                        if (currentListeners[counter].eventHandlerOwner === owner) {
+                        if (currentListeners[counter].eventHandlerOwner == owner) {
                             console.log("removing listener for event: " + evt);
                             currentListeners.splice(counter, 1);
                         }

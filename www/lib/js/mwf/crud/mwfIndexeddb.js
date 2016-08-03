@@ -25,7 +25,7 @@ define(function () {
         var onstorecreated = _onstorecreated;
 
         var version = null;
-        if (!_version || _version === "") {
+        if (!_version || _version == "") {
             version = 1;
         } else {
             version = parseInt(_version, 10);

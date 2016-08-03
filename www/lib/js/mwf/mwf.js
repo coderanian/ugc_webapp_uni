@@ -32,7 +32,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
     /* local utility functions */
 
     function cancelClickPropagation(e) {
-        if (e.eventPhase !== Event.CAPTURING_PHASE) {
+        if (e.eventPhase != Event.CAPTURING_PHASE) {
             e.stopPropagation();
         }
     }
@@ -115,8 +115,8 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
 
         console.log("getListviewAdapter(): " + listviewid);
 
-        if (arguments.length === 0 || !listviewid) {
-            if (Object.keys(this.listviewAdapters).length === 1) {
+        if (arguments.length == 0 || !listviewid) {
+            if (Object.keys(this.listviewAdapters).length == 1) {
                 return this.listviewAdapters[Object.keys(this.listviewAdapters)[0]];
             }
             else {
@@ -198,7 +198,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
         this.pushViewController = function (vc) {
             console.log("pushing view controller: " + vc + " onto list of " + activeViewControllers.length + " active controllers...");
             // we invoke pause on the current last element
-            if (activeViewControllers.length !== 0) {
+            if (activeViewControllers.length != 0) {
                 var currentViewVC = activeViewControllers[activeViewControllers.length - 1];
                 console.log("pausing view controller: " + currentViewVC);
 
@@ -233,10 +233,10 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
                 // we invoke the onstop method on the vc
                 vc.onstop(function () {
                     // then we check whether we have a current view controller and invoke onresume(); - unless it is obsolete
-                    if (activeViewControllers.length !== 0) {
+                    if (activeViewControllers.length != 0) {
                         var currentViewVC = activeViewControllers[activeViewControllers.length - 1];
 
-                        if (currentViewVC.lcstatus === CONSTANTS.LIFECYCLE.OBSOLETE) {
+                        if (currentViewVC.lcstatus == CONSTANTS.LIFECYCLE.OBSOLETE) {
                             console.info("current view controller " + currentViewVC.root.id + " is obsolete. Pop it...");
                             // we do not pass returnData or status
                             this.popViewController({obsoleted: true},-1);
@@ -272,7 +272,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
                     console.log("popped view controller: " + vc.root.id + ". Will call onstop");
                     vc.onstop(function () {
                         countdown--;
-                        if (countdown === 0) {
+                        if (countdown == 0) {
                             console.log("no active view controllers left. Now call the callback from " + vc.root.id);
                             callback.call(this, vc.root.id);
                         }
@@ -365,7 +365,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
         /* get a template */
         this.hasTemplate = function (templatename) {
             var template = templates[templatename];
-            return template !== null && template !== undefined;
+            return template != null && template != undefined;
         };
     }
 
@@ -437,7 +437,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
                 itemview.parentNode.removeChild(itemview);
                 var i;
                 for (i = 0; i < this.elements.length; i++) {
-                    if (this.elements[i]._id === itemId) {
+                    if (this.elements[i]._id == itemId) {
                         this.elements.splice(i, 1);
                         break;
                     }
@@ -463,7 +463,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
                 var i, item, key;
                 // we first lookup the existing item and update it
                 for (i = 0; i < this.elements.length; i++) {
-                    if (this.elements[i]._id === itemId) {
+                    if (this.elements[i]._id == itemId) {
                         item = this.elements[i];
                         for (key in update) {
                             item[key] = update[key];
@@ -488,7 +488,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
             var i;
             for (i = 0; i < this.elements.length; i++) {
                 console.log("checking element: " + mwfUtils.stringify(this.elements[i]));
-                if (this.elements[i]._id === itemId) {
+                if (this.elements[i]._id == itemId) {
                     return this.elements[i];
                 }
             }
@@ -504,7 +504,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
 
     // for conceptual/terminological clarity, we introduce a second constructor for event: EventMatcher, which will not accept a data object
     function EventMatcher(group, type, target) {
-        if (arguments.length === 4) {
+        if (arguments.length == 4) {
             alert("ERROR: EventMatcher does not accept 4 arguments. Do you intend to use Event?");
         }
         // call the supertype constructor
@@ -625,7 +625,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
         console.log("prepareListviews()");
         // read out listviews (! we might have more than a single listview, see e.g. types search results in spotify etc.)
         var listviews = this.root.getElementsByClassName("mwf-listview");
-        if (listviews.length === 0) {
+        if (listviews.length == 0) {
             console.log("prepareListviews(): view " + this.root.id + " does not use listviews");
         }
         else if (this.listviewsPrepared) {
@@ -707,11 +707,11 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
                     mwfUtils.removeTouch(eventData.listitem);
 
                     // if we have an itemMenuSelected event we stop propagation - otherwise a itemSelection event will be triggered
-                    if (eventData.eventType === "itemMenuSelected") {
+                    if (eventData.eventType == "itemMenuSelected") {
                         this.onListItemMenuSelected(eventData.listitem, eventData.listview);
                     }
                     // we invoke the itemMenuItemSelected function which will also be called when selecting an action from the action menu
-                    else if (eventData.eventType === "itemActionSelected") {
+                    else if (eventData.eventType == "itemActionSelected") {
                         this.onListItemMenuItemSelected(eventData.listitemAction, eventData.listitem, eventData.listview);
                     }
                     else {
@@ -1054,7 +1054,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
 
         // check whether we have pending event listeners
         // TODO: here, event listeners could be checked for obsoletion...
-        if (this.pendingEventListeners.length === 0) {
+        if (this.pendingEventListeners.length == 0) {
             console.log("ViewController.onresume(): no pending event listeners exist");
         }
         else {
@@ -1143,7 +1143,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
 
         // now instantiate the new dialog
         // TODO: dialogs should be dealt with using the templating mechanism unless the dialog is provided as an argument
-        if (typeof dialogid === 'object') {
+        if (typeof dialogid == 'object') {
             this.dialog = dialogid;
         }
         else {
@@ -1169,7 +1169,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
         if (!this.dialog.parentNode) {
             this.root.parentNode.appendChild(this.dialog);
         }
-        else if (this.dialog.parentNode === this.root) {
+        else if (this.dialog.parentNode == this.root) {
             this.root.parentNode.appendChild(this.root.removeChild(this.dialog));
         }
 
@@ -1211,7 +1211,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
         console.log("lcstatus of dialog controller: " + dialogCtrl.lcstatus);
 
         // check whether the dialog has already been created or if it is only in constructed mode
-        if (dialogCtrl.lcstatus === CONSTANTS.LIFECYCLE.CONSTRUCTED) {
+        if (dialogCtrl.lcstatus == CONSTANTS.LIFECYCLE.CONSTRUCTED) {
             console.log("showDialog(): dialog view controller needs to be initialised. Will call oncreate()...");
             dialogCtrl.oncreate(function(){
                 dialogCtrl.onresume(function () {
@@ -1284,14 +1284,14 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
 
         function isTemplateWrapper(element) {
             // either no classes (mere div wrapper), or mwf-template and at most mwf-databind
-            if (element.classList.length === 0 || (element.classList.contains("mwf-template") && (element.classList.length === 2 ? element.classList.contains("mwf-databind") : element.classList.length === 1))) {
+            if (element.classList.length == 0 || (element.classList.contains("mwf-template") && (element.classList.length == 2 ? element.classList.contains("mwf-databind") : element.classList.length == 1))) {
                 console.log("bindElement(): element is a mere wrapper. Will attach it to root elemenent if provided: " + attachToRoot);
                 return true;
             }
             return false;
         }
 
-        if (typeof elementid === 'string') {
+        if (typeof elementid == 'string') {
             var element = this.root.querySelector("#" + elementid);
             if (!element) {
                 console.log("bindElement(): binding to a template");
@@ -1588,7 +1588,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
             // we lookup the mainmenu action from the view and attach to it
             var mainmenuActionElements = view.getElementsByClassName("mwf-img-sandwich-action");
             console.log("found mainmenu elements: " + mainmenuActionElements.length);
-            if (mainmenuActionElements.length === 0) {
+            if (mainmenuActionElements.length == 0) {
                 console.log("view " + view.id + " does not seem to use a mainmenu action");
             }
             else {
@@ -1643,7 +1643,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
             console.log("oncreate()");
 
             var initialViews = this.bodyElement.getElementsByClassName("mwf-view-initial");
-            if (initialViews.length === 0) {
+            if (initialViews.length == 0) {
                 mwfUtils.showToast("No initial view could be found!");
             } else {
                 this.initialView = initialViews[0];
@@ -1764,7 +1764,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
 
             // check whether the application contains embedded templates and output an error
             var embeddedTemplates = document.querySelectorAll(".mwf-template .mwf-template");
-            if (embeddedTemplates.length === 0) {
+            if (embeddedTemplates.length == 0) {
                 console.log("embedded templates check sucessful. None was found.");
             }
             else {

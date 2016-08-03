@@ -29,7 +29,7 @@ define(function () {
 
         if (requestpath) {
 
-            if (requestpath.indexOf("/") === 0) {
+            if (requestpath.indexOf("/") == 0) {
                 url = requestpath.substring(1);
             } else {
                 url = requestpath;
@@ -44,7 +44,7 @@ define(function () {
                     case 4:
                         console.log("onreadstatechange: request finished and response is ready. Status is: " + xmlhttp.status);
                         // in case we have a request code of 200 OK, we execute the onsuccess function passed as an argument
-                        if (xmlhttp.status === 200) {
+                        if (xmlhttp.status == 200) {
                             // show how to access a response header
                             console.log("response Content-Type header is: " + xmlhttp.getResponseHeader("Content-type"));
                             console.log("responseType is: " + xmlhttp.responseType);
@@ -136,7 +136,7 @@ define(function () {
                 onsuccess(responseobj.data);
             }
         }, function (xmlhttp) {
-            if (xmlhttp.status === 404) {
+            if (xmlhttp.status == 404) {
                 console.log("got 404 status code for " + httpmethod + " crud call on " + resource + ". Will call onsuccess without argument");
                 onsuccess();
             } else {

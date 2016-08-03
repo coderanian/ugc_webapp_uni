@@ -52,8 +52,8 @@ define(["xhr", "EntityManager", "mwfUtils"], function (xhr, EntityManager, mwfUt
             // create an xmlhttprequest
             var xhrq = new XMLHttpRequest();
             xhrq.onreadystatechange = function () {
-                if (xhrq.readyState === 4) {
-                    if (xhrq.status === 200) {
+                if (xhrq.readyState == 4) {
+                    if (xhrq.status == 200) {
                         var formDataResponse = xhrq.responseText;
                         console.log("persistMediaContent(): formdata has been processed successfully: Got: " + formDataResponse);
                         var responseObj = JSON.parse(formDataResponse).data;

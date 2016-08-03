@@ -107,12 +107,13 @@ define(function () {
                 // we will create the object stores for which openOrCreate has been called
                 console.log("open().onupgradeneeded(): create " + objectstores.length + " object stores for db: " + db);
 
-                for (var i = 0; i < objectstores.length; i++) {
-                    var currentStore = objectstores[i];
-                    var currentModifiers = modifiers ? modifiers[i] : null;
+                var currentStore, currentModifiers, currentStoreObj;
+                for (i = 0; i < objectstores.length; i++) {
+                    currentStore = objectstores[i];
+                    currentModifiers = modifiers ? modifiers[i] : null;
                     console.log("open().onupgradeneeded(): creating objectstore: " + currentStore);
                     // by default, we will create the stores with autoincrement and without any further parameters
-                    var currentStoreObj = db.createObjectStore(currentStore, currentModifiers ? currentModifiers : {
+                    currentStoreObj = db.createObjectStore(currentStore, currentModifiers || {
                         autoIncrement: true
                     });
 
@@ -123,7 +124,7 @@ define(function () {
                 }
 
                 console.log("open().onupgradeneeded(): done.");
-            }
+            };
         };
         /*jslint nomen: false*/
 
@@ -157,21 +158,23 @@ define(function () {
             // set onerror callback
             if (onerror) {
                 transaction.onerror = function (event) {
-                    onerror(event, context)
+                    onerror(event, context);
                 };
             } else {
                 transaction.onerror = function (event) {
                     alert("Got error trying to create object: " + event.target.errorCode);
-                }
+                };
             }
 
             // we need to set the id in the request.onsuccess callback, not in transaction.oncomplete!
+            /*jslint nomen: true*/
             request.onsuccess = function(event) {
                 console.log("createObject(): onsuccess. got id: " + event.target.result + " (note that the id will only be set if it is assigned by the db, i.e. undefined is ok for manually assigned ids)");
                 if (event.target.result) {
                     object._id = event.target.result;
                 }
             };
+            /*jslint nomen: false*/
 
             // add a callback on the transaction that sets the id created by the add function!
             transaction.oncomplete = function (event) {
@@ -200,7 +203,9 @@ define(function () {
                 if (cursor) {
                     console.log("found: " + cursor.key + "=" + cursor.value);
                     // note that the id (cursor.key) will not be set on the object itself, i.e. we need to set it manually
+                    /*jslint nomen: true*/
                     cursor.value._id = cursor.key;
+                    /*jslint nomen: false*/
                     // we add the object to the objects array
                     objects.push(cursor.value);
                     // try to read out the next object - NOTE THAT APTANA WILL COMPLAIN ABOUT THE continue() FUNCTION - AND JUST IGNORE IT...
@@ -217,7 +222,7 @@ define(function () {
                 } else {
                     alert("Got error trying to read all objects from store " + objectstore + ": " + event.target.errorCode);
                 }
-            }
+            };
         };
 
         /*
@@ -228,7 +233,7 @@ define(function () {
             // we create a transaction
             var objectStore = db.transaction([objectstore]).objectStore(objectstore);
             // we create a get request, passing the id
-            var request = objectStore.get(intids[objectstore] ? parseInt(id) : id);
+            var request = objectStore.get(intids[objectstore] ? parseInt(id, 10) : id);
             // set the callbacks
             request.onerror = function (event) {
                 if (onerror) {
@@ -242,7 +247,9 @@ define(function () {
                 // check whether we have an entry
                 if (entry) {
                     // set the id on the entry
+                    /*jslint nomen: true*/
                     entry._id = id;
+                    /*jslint nomen: false*/
                     if (onsuccess) {
                         onsuccess(createEntityFromObject(objectstore,entry), context);
                     } else {
@@ -270,20 +277,21 @@ define(function () {
             var objectStore = transaction.objectStore(objectstore);
 
             // as shown in mdn demo, indexeddb does (currently) not support partial updates, i.e. we need to read out the object first and then replace the attribute value pairs that are contained in the update object passed to this function.
-            var request = objectStore.get(intids[objectstore] ? parseInt(id) : id);
+            var request = objectStore.get(intids[objectstore] ? parseInt(id, 10) : id);
 
             request.onsuccess = function (event) {
                 // Get the old value that we want to update
                 var currentValue = request.result;
                 // then do the partial update manually
-                for (var attr in update) {
+                var attr;
+                for (attr in update) {
                     currentValue[attr] = update[attr];
                 }
 
                 // and then write the objec - note that put takes the key as second argument... note that if the _id is set on the update object, this operation will result in adding the _id attribute to the object store, as well
                 var updaterequest = null;
                 if (!usekeypathForUpdate[objectstore]) {
-                    updaterequest = objectStore.put(currentValue, intids[objectstore] ? parseInt(id) : id);
+                    updaterequest = objectStore.put(currentValue, intids[objectstore] ? parseInt(id, 10) : id);
                 } else {
                     updaterequest = objectStore.put(currentValue);
                 }
@@ -330,8 +338,8 @@ define(function () {
             var objectStore = transaction.objectStore(objectstore);
 
             // call the delete function - NOTE THAT APTANA WILL COMPLAIN...
-            var request = objectStore.
-                delete(intids[objectstore] ? parseInt(id) : id);
+            objectStore.
+                delete(intids[objectstore] ? parseInt(id, 10) : id);
 
             // onerror callback
             transaction.onerror = function (event) {
@@ -352,7 +360,7 @@ define(function () {
                     console.log("successfully deleted entry.");
                 }
             };
-        }
+        };
     }
 
     function createInstance(_dbname, _version, _objectstores, _modifiers, _onstorecreated, _stringids) {

@@ -21,7 +21,8 @@ define(["mwf", "entities"], function (mwf, entities) {
             if (!this.args.actionBindings) {
                 console.warn("no actionBindings passed to handle actions in template: " + this.root.getAttribute("data-mwf-templatename"));
             } else {
-                for (var action in this.args.actionBindings) {
+                var action;
+                for (action in this.args.actionBindings) {
                     console.log("adding binding for action: " + action);
                     this.root.viewProxy.bindAction(action,this.args.actionBindings[action]);
                 }
@@ -29,7 +30,7 @@ define(["mwf", "entities"], function (mwf, entities) {
 
             // call the superclass once creation is done
             proto.onresume.call(this,callback);
-        }
+        };
 
     }
 

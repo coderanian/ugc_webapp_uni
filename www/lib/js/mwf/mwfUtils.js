@@ -234,6 +234,7 @@ define(function () {
 
     function stringifyObj(obj) {
         var str = "";
+        var i;
 
         if (obj === null) {
             str += "null";
@@ -247,7 +248,7 @@ define(function () {
         else if (Array.isArray(obj)) {
             //console.log("stringify: array");
             str = "[";
-            for (var i=0;i<obj.length;i++) {
+            for (i=0;i<obj.length;i++) {
                 str += stringifyObj(obj[i]);
                 if (i< (obj.length-1)) {
                     str += ", ";
@@ -259,8 +260,9 @@ define(function () {
             //console.log("stringify: object");
             str += "{";
             var length = Object.keys(obj).length;
-            var i=0;
-            for (var attr in obj) {
+            i=0;
+            var attr;
+            for (attr in obj) {
                 str += (attr + "=");
                 str += stringifyObj(obj[attr]);
                 if (i < (length-1)) {
@@ -280,17 +282,18 @@ define(function () {
         }
         else {
             //console.log("stringify: default");
-            str += "" + obj;
+            str += obj;
         }
 
         return str;
     }
 
     function createPersistableClone(obj) {
-        var clone = new Object();
-        for (var attr in obj) {
-            var currentVal = obj[attr];
-            if (attr != "_id" && typeof currentVal !== "function") {
+        var clone = {};
+        var attr, currentVal;
+        for (attr in obj) {
+            currentVal = obj[attr];
+            if (attr !== "_id" && typeof currentVal !== "function") {
                 clone[attr] = currentVal;
             }
         }
@@ -315,7 +318,7 @@ define(function () {
         removeTouch: removeTouch,
         stringify: stringifyObj,
         createPersistableClone: createPersistableClone
-    }
+    };
 
 });
 

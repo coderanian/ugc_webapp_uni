@@ -51,8 +51,9 @@ define(function () {
                 if (event.type.indexOf("|") !== -1) {
                     console.log("event specifies a disjunction of types: " + event.type + ". Will add a listener for each concrete type");
                     var etypes = event.type.split("|");
-                    for (var i = 0; i < etypes.length; i++) {
-                        this.addEventListener(iam.lib.eventhandling.customEvent(event.group, etypes[i], event.target), callback);
+                    var i;
+                    for (i = 0; i < etypes.length; i++) {
+                        this.addEventListener(new CustomEvent(event.group, etypes[i], event.target), callback);
                     }
                 } else {
                     console.log("adding new event listener for event " + event.desc());
@@ -70,13 +71,14 @@ define(function () {
                 var els = eventListeners[event.desc()];
                 if (els) {
                     console.log("will notify " + ( els ? els.length + " " : "0 ") + " listeners of event: " + event.desc());
-                    for (var i = 0; i < els.length; i++) {
-                        var currentCallback = els[i];
+                    var i, currentCallback, boundHandler;
+                    for (i = 0; i < els.length; i++) {
+                        currentCallback = els[i];
                         // check whether the callback has an owner, in which case it is up to the caller to handle the callback
                         if (currentCallback.eventHandlerOwner) {
                             console.log("will pass bound listener " + i + " to owner");
                             // we pass owner, but the function should already be bound to it
-                            var boundHandler = currentCallback.bind(currentCallback.eventHandlerOwner, event);
+                            boundHandler = currentCallback.bind(currentCallback.eventHandlerOwner, event);
                             // we set the event on the handler which will allow handlers to check whether the event
                             // is still valid or not
                             boundHandler.boundEvent = event;
@@ -99,11 +101,13 @@ define(function () {
              */
             this.removeListenersForOwner = function (owner) {
                 console.log("removing listeners for owner: " + owner + (owner.root ? (" " + owner.root.id) : ""));
-                for (var evt in eventListeners) {
-                    var currentListeners = eventListeners[evt];
-                    var counter = 0;
+
+                var evt, currentListeners, counter;
+                for (evt in eventListeners) {
+                    currentListeners = eventListeners[evt];
+                    counter = 0;
                     while (counter < currentListeners.length) {
-                        if (currentListeners[counter].eventHandlerOwner == owner) {
+                        if (currentListeners[counter].eventHandlerOwner === owner) {
                             console.log("removing listener for event: " + evt);
                             currentListeners.splice(counter, 1);
                         }
@@ -112,7 +116,7 @@ define(function () {
                         }
                     }
                 }
-            }
+            };
         }
 
         // export the CustomEvent and EventDispatcher APIs
@@ -126,6 +130,6 @@ define(function () {
             addListener: dispatcher.addListener,
             notifyListeners: dispatcher.notifyListeners,
             removeListenersForOwner: dispatcher.removeListenersForOwner
-        }
+        };
     }
 );

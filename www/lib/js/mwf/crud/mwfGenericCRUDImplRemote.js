@@ -78,7 +78,7 @@ define(["xhr", "EntityManager", "mwfUtils"], function (xhr, EntityManager, mwfUt
                     }
                 }
             };
-            xhrq.open("POST","/http2mdb" + baseUrl.call(this));
+            xhrq.open("POST","/" + xhr.getApiprefix() + baseUrl.call(this));
             xhrq.send(formdata);
         };
 

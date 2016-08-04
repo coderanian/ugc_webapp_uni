@@ -8,7 +8,7 @@ define(function () {
 
 
     // a prefix for the restapi
-    var apiprefix = "http2mdb";
+    var apiprefix = "api";
 
     /*
      * generic method for calling a webapp passing / receiving json and callback methods
@@ -122,7 +122,7 @@ define(function () {
     /*
      * a convenience function for executing crud operations via xhr, assuming that the server-side api uses a wrapper object with the actual response data accessible via the data attribute
      * note that in case of a 404 status code, we call the onsuccess function without an argument!
-     * we also prefix the rest api path prefix http2mdb
+     * we also prefix the rest api path prefix
      *
      * note that this function is not exported by the module but partially bound by the exported functions create, read, update and delete
      */
@@ -145,13 +145,23 @@ define(function () {
         });
     }
 
+    function setApiprefix(prefix) {
+        apiprefix = prefix;
+    }
+
+    function getApiprefix() {
+        return apiprefix;
+    }
+
     // export the functions - note that the misspelling of delete is intended for avoiding errors reported by javascript editors due to usage of a reserved keyword...
     return {
         xhr: xhr,
         create: crud.bind(undefined, "POST"),
         read: crud.bind(undefined, "GET"),
         update: crud.bind(undefined, "PUT"),
-        deleat: crud.bind(undefined, "DELETE")
+        deleat: crud.bind(undefined, "DELETE"),
+        setApiprefix: setApiprefix,
+        getApiprefix: getApiprefix
     };
 
 });

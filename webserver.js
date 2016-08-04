@@ -14,12 +14,13 @@ var http2mdb = require("./njsimpl/http2mdb");
 // the HTTP server
 var server;
 // the port on which the server will be started
-var port = 8393;
-
+var port = 8399;
 // the ip address
 var ip = /*"127.0.0.1";*/utils.getIPAddress();
+// the segment for identifying the rest api
+var apiref = "api";
 
-// this might no be the most elegant solution to avoid the event emitter error message..., see http://stackoverflow.com/questions/9768444/possible-eventemitter-memory-leak-detected 
+// this might no be the most elegant solution to avoid the event emitter error message..., see http://stackoverflow.com/questions/9768444/possible-eventemitter-memory-leak-detected
 
 server = http.createServer(function(req, res) {
     var path = url.parse(req.url).pathname;
@@ -27,9 +28,9 @@ server = http.createServer(function(req, res) {
     console.log("onHttpRequest(): trying to serve path: " + path);
 
     // check whether we have an api call or need to serve a file
-    if (path.indexOf("/http2mdb/") == 0) {
-        console.log("onHttpRequest(): got a call to the http2mdb api. Will continue processing there...");
-        http2mdb.processRequest(req, res);
+    if (path.indexOf("/" + apiref + "/") == 0) {
+        console.log("onHttpRequest(): got a call to the rest api. Will continue processing there...");
+        http2mdb.processRequest(req, res, apiref);
     } else {
         if (path.length > 1 && path.indexOf("%7D%7D") == path.length-6) {
             console.warn("onHttpRequest(): path seems to be a template filling expression. Will not deliver anything.");
@@ -74,10 +75,10 @@ server = http.createServer(function(req, res) {
             console.log("onHttpRequest(): response is null. No need to finish...");
         }
     });
-    
+
     // don't limit the amount of event listeners
     process.setMaxListeners(0);
-    
+
 });
 
 
@@ -86,7 +87,7 @@ server.listen(port, ip);
 console.log("HTTP server running at http://" + ip + ":" + port);
 
 /*
- * helper method for assiging a Content-Type header to http responses
+ * helper methhod for assiging a Content-Type header to http responses
  */
 function contentType(path) {
     if (path.match('.js$')) {

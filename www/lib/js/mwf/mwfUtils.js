@@ -23,7 +23,7 @@ define(function () {
      * longpress
      *************/
 
-    // we use a timer variable to detect whether we had a longpress
+        // we use a timer variable to detect whether we had a longpress
     var timer;
 
     function startLongpressReco(element, timeout, event, onLongPress) {
@@ -300,6 +300,29 @@ define(function () {
         return clone;
     }
 
+    function isWebserverAvailable(callback) {
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState == 4) {
+                console.log("isWebserverAvailable(): readyState: 4. Check status...");
+                if (xhr.status == 204) {
+                    console.log("isWebserverAvailable(): success status: 204");
+                    callback(true);
+                } else if (xhr.status == 0) {
+                    console.log("isWebserverAvailable(): offline status: 0");
+                    callback(false);
+                } else {
+                    console.log("isWebserverAvailable(): error status: " + xhr.status + " - assume the server is offline");
+                    callback(false);
+                }
+            } else {
+                console.log("isWebserverAvailable(): readyState: " + xhr.readyState);
+            }
+        };
+        xhr.open("GET","/available");
+        xhr.send();
+    }
+
     return {
         showToast: showToast,
         enableLongpress: enableLongpress,
@@ -317,7 +340,8 @@ define(function () {
         checkInputCompleted: checkInputCompleted,
         removeTouch: removeTouch,
         stringify: stringifyObj,
-        createPersistableClone: createPersistableClone
+        createPersistableClone: createPersistableClone,
+        isWebserverAvailable: isWebserverAvailable
     };
 
 });

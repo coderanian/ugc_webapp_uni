@@ -32,6 +32,10 @@ server = http.createServer(function(req, res) {
         console.error("onHttpRequest(): ERROR: legacy api prefix http2mdb is being used, but prefix is set to: " + apiref + "!");
         res.writeHead(404);
         res.end();
+    } else if (path.indexOf("/available") == 0) {
+        console.log("onHttpRequest(): received an availability request, respond with success");
+        res.writeHead(204);
+        res.end();
     }
     else if (path.indexOf("/" + apiref + "/") == 0) {
         console.log("onHttpRequest(): got a call to the rest api. Will continue processing there...");

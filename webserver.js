@@ -28,7 +28,12 @@ server = http.createServer(function(req, res) {
     console.log("onHttpRequest(): trying to serve path: " + path);
 
     // check whether we have an api call or need to serve a file
-    if (path.indexOf("/" + apiref + "/") == 0) {
+    if (path.indexOf("/http2mdb/") == 0 && apiref != "http2mdb") {
+        console.error("onHttpRequest(): ERROR: legacy api prefix http2mdb is being used, but prefix is set to: " + apiref + "!");
+        res.writeHead(404);
+        res.end();
+    }
+    else if (path.indexOf("/" + apiref + "/") == 0) {
         console.log("onHttpRequest(): got a call to the rest api. Will continue processing there...");
         http2mdb.processRequest(req, res, apiref);
     } else {

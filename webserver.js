@@ -14,7 +14,7 @@ var http2mdb = require("./njsimpl/http2mdb");
 // the HTTP server
 var server;
 // the port on which the server will be started
-var port = 8399;
+var port = 8383;
 // the ip address
 var ip = /*"127.0.0.1";*/utils.getIPAddress();
 // the segment for identifying the rest api
@@ -51,6 +51,11 @@ server = http.createServer(function(req, res) {
                 // if the root is accessed we serve the main html document
                 path = "app.html";
             }
+            else {
+                // we need to consider that the path may be url encoded, e.g. in case a filename contains blanks
+                path = decodeURI(path);
+            }
+
             // serveable resources will be put in the webcontent directory -- the callback will be passed the data read out from the file being accessed
             fs.readFile(__dirname + "/www/" + path, function (err, data) {
                 // check whether we have got an error retrieving the resource: create a 404 error, assuming that a wrong uri was used

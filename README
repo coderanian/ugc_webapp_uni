@@ -1,3 +1,5 @@
+160802: create cleanup branch
+
 1) Zugriff auf super-Methoden
 - via Referenz auf prototype-Objekt (proto)
 

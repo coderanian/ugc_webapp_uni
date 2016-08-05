@@ -1,17 +1,17 @@
 /**
  * Created by master on 17.02.16.
  */
-define(["mwf","mwfUtils","EntityManager","entities","GenericCRUDImplLocal","GenericCRUDImplRemote"],function(mwf,mwfUtils,EntityManager,entities,GenericCRUDImplLocal,GenericCRUDImplRemote){
+define(["mwf", "mwfUtils", "EntityManager", "entities", "GenericCRUDImplLocal", "GenericCRUDImplRemote"], function (mwf, mwfUtils, EntityManager, entities, GenericCRUDImplLocal, GenericCRUDImplRemote) {
 
     function MyApplication() {
 
         var proto = MyApplication.prototype;
 
-        this.oncreate = function(callback) {
-            console.log("MyApplication.oncreate(): calling supertype oncreate")
+        this.oncreate = function (callback) {
+            console.log("MyApplication.oncreate(): calling supertype oncreate");
 
             // first call the supertype method and pass a callback
-            proto.oncreate.call(this,function() {
+            proto.oncreate.call(this, function () {
 
                 // initialise the local database
                 // TODO-REPEATED: add new entity types to the array of object store names
@@ -34,14 +34,12 @@ define(["mwf","mwfUtils","EntityManager","entities","GenericCRUDImplLocal","Gene
 
             }.bind(this));
 
-        }
+        };
 
     }
 
-    mwf.xtends(MyApplication,mwf.Application);
+    mwf.xtends(MyApplication, mwf.Application);
 
-    var instance = new MyApplication();
-
-    return instance;
+    return new MyApplication();
 
 });

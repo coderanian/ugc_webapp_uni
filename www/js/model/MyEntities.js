@@ -26,6 +26,6 @@ define(["mwfUtils", "EntityManager"], function (mwfUtils, EntityManager) {
     // TODO-REPEATED: do not forget to export all type declarations
     return {
         MyEntity: MyEntity
-    }
+    };
 
 });

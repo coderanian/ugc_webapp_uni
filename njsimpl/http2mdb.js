@@ -54,7 +54,7 @@ function MDBRequest(uri) {
 module.exports = {
 
     /* this method dispatches request depending on the request method, comparable to the servlet api */
-    processRequest : function processRequest(req, res) {
+    processRequest : function processRequest(req, res, apiref) {
 
         console.log("processRequest(): req: " + req);
         console.log("processRequest(): req.method: " + req.method);
@@ -63,7 +63,7 @@ module.exports = {
         console.log("processRequest(): req header host: " + req.headers["host"]);
 
         // we truncate the url
-        var uri = utils.substringAfter(req.url, "/http2mdb/");
+        var uri = utils.substringAfter(req.url, "/" + apiref + "/");
 
         // we assume the rest of the url specifies the collection and possibly object to be accessed and wrap this information in a special type of object
         var mdbrequest = new MDBRequest(uri);

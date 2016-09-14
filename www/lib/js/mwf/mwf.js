@@ -1284,7 +1284,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
 
         function isTemplateWrapper(element) {
             // either no classes (mere div wrapper), or mwf-template and at most mwf-databind
-            if (element.classList.length == 0 || (element.classList.contains("mwf-template") && (element.classList.length == 2 ? element.classList.contains("mwf-databind") : element.classList.length == 1))) {
+            if (((element.tagName.toLowerCase() == "div") || (element.tagName.toLowerCase() == "span")) && (element.classList.length == 0 || (element.classList.contains("mwf-template") && (element.classList.length == 2 ? element.classList.contains("mwf-databind") : element.classList.length == 1)))) {
                 console.log("bindElement(): element is a mere wrapper. Will attach it to root elemenent if provided: " + attachToRoot);
                 return true;
             }
@@ -1321,6 +1321,12 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
         if (boundElement) {
             if (attachToRoot) {
                 attachToRoot.appendChild(boundElement);
+
+                // TODO: this is a workaround related to the not completely transparent logics of whether the root or the element itself is passed to applyDatabinding
+                if (!attachToRoot.viewProxy) {
+                    attachToRoot.viewProxy = boundElement.viewProxy;
+                }
+
                 return attachToRoot;
             }
             return boundElement;

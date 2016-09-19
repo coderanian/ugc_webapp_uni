@@ -74,7 +74,7 @@ define(function () {
     /***************
      * ui utilities
      ***************/
-
+        
     // this seems to be sufficient for distinguising touch vs. scroll
     var touchedcheckTimeout = 20;
 
@@ -108,22 +108,30 @@ define(function () {
     }
 
     /*
-     * handlers for touch events
+     * handlers for touch events - cancel touch events on touchend/move or mouseup/move
      */
     function cancelSelection(e) {
-        if (e.eventPhase != Event.CAPTURING_PHASE) {
-            e.stopPropagation();
-            e.target.classList.remove("mwf-touched");
-            e.target.classList.remove("mwf-touched-check");
+        // this conditional is pointless because we do not handle the event in the capturing phase - it might make sense, to acually HANDLE the event in the capturing phase, though...
+        // if (e.eventPhase != Event.CAPTURING_PHASE) {
+        e.stopPropagation();
 
-            e.target.removeEventListener("mousedown", cancelSelection);
-            e.target.removeEventListener("mousemove", cancelSelection);
-            e.target.removeEventListener("touchmove", cancelSelection);
-            e.target.removeEventListener("touchcancel", cancelSelection);
-            e.target.removeEventListener("touchend", cancelSelection);
+        if (e.currentTarget.classList.contains("mwf-touched") || e.currentTarget.classList.contains("mwf-touched-check")) {
+            var touchedCandidate = e.currentTarget;
+            console.log("cancelSelection(): removing touched handling from element",touchedCandidate);
+            touchedCandidate.classList.remove("mwf-touched");
+            touchedCandidate.classList.remove("mwf-touched-check");
+
+            touchedCandidate.removeEventListener("mousedown", cancelSelection);
+            touchedCandidate.removeEventListener("mousemove", cancelSelection);
+            touchedCandidate.removeEventListener("touchmove", cancelSelection);
+            touchedCandidate.removeEventListener("touchcancel", cancelSelection);
+            touchedCandidate.removeEventListener("touchend", cancelSelection);
         }
+        // else {
+        //     console.log("cancelSelection(): no touched element found");
+        // }
+        // }
     }
-
 
     function feedbackTouchOnElement(element) {
 
@@ -133,10 +141,10 @@ define(function () {
                 console.log("mousedown: " + element + " in phase: " + e.eventPhase);
                 e.stopPropagation();
 
+                element.classList.add("mwf-touched-check");
+
                 element.addEventListener("mouseup", cancelSelection);
                 element.addEventListener("mousemove", cancelSelection);
-
-                element.classList.add("mwf-touched-check");
 
                 setTimeout(function () {
                     if (element.classList.contains("mwf-touched-check")) {
@@ -153,6 +161,7 @@ define(function () {
             if (e.eventPhase != Event.CAPTURING_PHASE) {
                 console.log("touchstart: " + element);
                 e.stopPropagation();
+
                 element.classList.add("mwf-touched-check");
 
                 element.addEventListener("touchmove", cancelSelection);

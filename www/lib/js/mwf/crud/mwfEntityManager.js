@@ -124,16 +124,18 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
             console.log("pojoToEntity(): typename (from attr " + typenameAttr + "): " + typename);
             var entity;
             if (typename) {
+                console.log("pojoToEntity(): useEntity: ", useEntity);
                 // this allows us to preserve referential identity of objects before and after creation!!!
                 if (useEntity) {
                     entity = useEntity;
                 }
                 else {
+                    console.log("pojoToEntity(): create new entity from typedef: " + typename);
                     entity = new entityTypedefs[typename]();
                 }
                 // check whether we have an instance of an entity
                 if (entity instanceof Entity) {
-                    console.log("pojoToEntity(): type of pojo is an entity type: " + typename + ". Call fromPojo(), then postLoad()");
+                    console.log("pojoToEntity(): type of pojo is an entity type: " + typename + ". Call fromPojo(), then postLoad(). Entity is: ", entity);
                     entity.fromPojo(pojo);
 
                     // we add the entity to the local representation befor calling postLoad -> this way we should omit recursion in case of bidirectional assocs
@@ -299,12 +301,15 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
         }
 
         this.create = function (entitytype, entity, callback) {
+            console.log("create(): ", entity);
             checkInitialised();
             checkCrudops(entitytype);
             // we delete any existing local id
             delete entity._id;
             // first of all, we remove the managedAttributes property
-            delete entity.managedAttributes;
+            // #ES6: managedAttributes handling needs to be refactored! (might need to be added as static member to type declaration?)
+            // delete entity.managedAttributes;
+            // /ES6
 
             entity.prePersist();
 
@@ -1075,69 +1080,465 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
         return (mwfUtils.endsWith(attr,"Manager")|| attr == "managedAttributes" || attr == "constructor" || attr == "toPojo" ||  typeof this[attr] == "function");
     }
 
-    function Entity() {
+    class Entity {
 
-        this._id = nextLocalId();
+        constructor() {
+            this._id = nextLocalId();
+            this.managedAttributes = {};
+        }
 
-        this.managedAttributes = {};
-
-    }
-
-    Object.defineProperty(Entity.prototype,"created",{
-        get: function() {
-            // well, we need to check whether we either have a string (which is the case if the id has been assigned by mdb) or whether the id is greater than -1
+        get created() {
             return (typeof this._id == "string") || (this._id > -1);
         }
-    });
 
-    Entity.prototype.clear = function () {
-        var attr;
-        for (attr in this) {
-            if (!isProtectedMember.call(this,attr)) {
-                delete this[attr];
+        clear() {
+            var attr;
+            for (attr in this) {
+                if (!isProtectedMember.call(this,attr)) {
+                    delete this[attr];
+                }
             }
         }
-    };
 
-    /*
-     * taken from http://stackoverflow.com/questions/332422/how-do-i-get-the-name-of-an-objects-type-in-javascript
-     */
-    Entity.prototype.getTypename = function () {
-        var funcNameRegex = /function (.{1,})\(/;
-        var results = funcNameRegex.exec(this.constructor.toString());
-        return (results && results.length > 1) ? results[1] : "";
-    };
-
-    Entity.prototype.prePersist = function () {
-        // this is currently not used as it is dealt with by the toPojo function
-        console.log(this.getTypename() + ".prePersist()");
-    };
-
-    Entity.prototype.postLoad = function (callback) {
-        console.log("postLoad(): " + this._id + "@" + this.getTypename());
-
-        var attrsCountdown = Object.keys(this.managedAttributes).length;
-
-
-        if (attrsCountdown == 0) {
-            console.log("postLoad(): entity does not have managed attributes. Invoke callback.");
-            callback(this);
+        getTypename() {
+            if (this.constructor.name) {
+                return this.constructor.name;
+            }
+            else {
+                var funcNameRegex = /function (.{1,})\(/;
+                var results = funcNameRegex.exec(this.constructor.toString());
+                return (results && results.length > 1) ? results[1] : "";
+            }
         }
-        else {
-            console.log("postLoad(): considering " + attrsCountdown + " managed attributes");
+
+        prePersist() {
+            // this is currently not used as it is dealt with by the toPojo function
+            console.log(this.getTypename() + ".prePersist()");
+        }
+
+        postLoad(callback) {
+            console.log("postLoad(): " + this._id + "@" + this.getTypename() + ":", this);
+
+            var attrsCountdown = Object.keys(this.managedAttributes).length;
+
+
+            if (attrsCountdown == 0) {
+                console.log("postLoad(): entity does not have managed attributes. Invoke callback.");
+                callback(this);
+            }
+            else {
+                console.log("postLoad(): considering " + attrsCountdown + " managed attributes");
+                var attr, attrManager;
+                for (attr in this.managedAttributes) {
+                    attrManager = attr + "Manager";
+                    this[attrManager].load(function () {
+                        attrsCountdown--;
+                        if (attrsCountdown == 0) {
+                            // we pass the entity itself as argument to the callback function
+                            callback(this);
+                        }
+                    }.bind(this));
+                }
+            }
+        }
+
+        instantiateManagedAttributes() {
+            //console.log("instantiateManagedAttributes()");
             var attr, attrManager;
             for (attr in this.managedAttributes) {
                 attrManager = attr + "Manager";
-                this[attrManager].load(function () {
-                    attrsCountdown--;
-                    if (attrsCountdown == 0) {
-                        // we pass the entity itself as argument to the callback function
+                if (this.managedAttributes[attr].multiple) {
+                    this[attrManager] = new ManagedEntitiesArray(this.managedAttributes[attr]);
+                }
+                else {
+                    this[attrManager] = new ManagedEntity(this.managedAttributes[attr]);
+                }
+            }
+        }
+
+        declareManagedAttribute(type,attrname,attrtypename,params) {
+            console.log("declareManagedAttribute(): " + type.prototype.getTypename() + "." + attrname + " of type: " + attrtypename);
+            // we add the typedef here (might be overridden by a crud operation declaration, but that's ok...)
+            // for abstract supertypes the typedef is required!
+            em.addTypedef(type);
+
+            // check whether for the given type we already have an entry
+            var currentTypeAttrs = allManagedAttributes.get(type);
+            if (!currentTypeAttrs) {
+                currentTypeAttrs = new Map();
+                allManagedAttributes.set(type,currentTypeAttrs);
+            }
+            if (params) {
+                params.attrtypename = attrtypename;
+            }
+            else {
+                params = {};
+                params.attrtypename = attrtypename;
+            }
+            currentTypeAttrs.set(attrname, params);
+        }
+
+        addManagedAttributeToType(type,attrname,attrtypename,params) {
+            console.log("addManagedAttributeToType(): " + this.getTypename() + "." + attrname + " of type " + attrtypename + "/" + params);
+            if (!params) {
+                params = {};
+            }
+
+            // check whether we have an inverse attribute specified and, lookup its description and replace it in the params
+            if (params.inverse) {
+                console.log("addManagedAttributeToType(): inverse attr is: " + params.inverse);
+                var inverseParams = em.getManagedAttributeParams(attrtypename,params.inverse);
+                inverseParams.attrname = params.inverse;
+                params.inverse = inverseParams;
+            }
+
+            // reengineer this!
+            if (!type.prototype.managedAttributes) {
+                type.prototype.managedAttributes = {};
+            }
+            type.prototype.managedAttributes[attrname] = params;
+            type.prototype.managedAttributes[attrname].type = attrtypename;
+            type.prototype.managedAttributes[attrname].attrname = attrname;
+
+
+            // TODO: on addManagedAttribute, the following declarations will be made given the name of the attribute
+            var attrManager = attrname + "Manager";
+
+            function handleInverseAttr(obj,params,remove) {
+                if (params.inverse && params.inverse.attrname) {
+                    var inverseAttr = params.inverse.attrname;
+                    var inverseAttrManager = inverseAttr + "Manager";
+                    if (params.inverse.multiple) {
+                        if (this._id < 0 && !params.inverse.allowTransient) {
+                            console.error(obj.getTypename() + "." + inverseAttr + ".push(): will ignore transient entity without _id - you may consider setting allowTransient!");
+                        }
+                        else if (remove) {
+                            obj[inverseAttrManager].removeObj(this);
+                        }
+                        else {
+                            obj[inverseAttrManager].push(this);
+                        }
+                    }
+                    else {
+                        if (this._id < 0 && !params.inverse.allowTransient) {
+                            console.error(obj.getTypename() + "." + inverseAttr + ".set(): will ignore transient entity without _id - you may consider setting allowTransient!");
+                        }
+                        else if (remove) {
+                            obj[inverseAttrManager].set(this);
+                        }
+                        else {
+                            // this needs to be handled!
+                            obj[inverseAttrManager].set(null);
+                        }
+                    }
+                }
+            }
+
+            var singularised = singularise(attrname);
+
+            if (!params.multiple) {
+                //Object.defineProperty(type.prototype,attrManager,{
+                // value: new ManagedEntity()
+                //});
+                Object.defineProperty(type.prototype,attrname,{
+                    get: function() {
+                        return this[attrManager].entity();
+                    },
+                    set: function(obj) {
+                        if (obj._id < 0 && !params.allowTransient) {
+                            // this reference which is complained about as "potentially invalid" *is*, in fact, valid
+                            console.error(this.getTypename() + ".add" + singularised + "(): will ignore transient entity without _id - you may consider setting allowTransient!");
+                        }
+                        else {
+                            this[attrManager].set(obj);
+                            handleInverseAttr.call(this, obj, params);
+                        }
+                    }
+                });
+            }
+            else {
+                //Object.defineProperty(type.prototype,attrManager,{
+                // value: new ManagedEntitiesArray()
+                //});
+                Object.defineProperty(type.prototype,attrname,{
+                    get: function() {
+                        return this[attrManager].entities();
+                    }
+                });
+                // add additional adder/remover/getter
+                type.prototype["add" + singularised] = function(obj) {
+                    // check whether we have an id set!
+                    if (obj._id < 0 && !params.allowTransient) {
+                        // valid this reference
+                        console.error(this.getTypename() + ".add" + singularised + "(): will ignore transient entity without _id - you may consider setting allowTransient!");
+                    }
+                    else {
+                        this[attrManager].push(obj);
+                        handleInverseAttr.call(this, obj, params);
+                    }
+                };
+                type.prototype["remove" + singularised] = function(obj) {
+                    this[attrManager].removeObj(obj);
+                    handleInverseAttr.call(this,obj,params,true);
+                };
+                type.prototype["get" + singularised] = function(objid) {
+                    return this[attrManager].getObj(objid);
+                };
+            }
+        }
+
+        removeEntityref(arr, entityid) {
+            // lookup the index
+            var index = -1, i;
+            for (i = 0; i < arr.length; i++) {
+                if (arr[i]._id == entityid) {
+                    index = i;
+                    break;
+                }
+            }
+            if (index > -1) {
+                arr.splice(index, 1);
+            }
+            else {
+                console.warn("canot remove entityref for " + entityid + " on instance of type " + this.getTypename() + ", it does not seem to exist...");
+            }
+        }
+
+        lookupEntityref(arr, entityid) {
+            var i;
+            for (i = 0; i < arr.length; i++) {
+                if (arr[i]._id == entityid) {
+                    return arr[i];
+                }
+            }
+            return null;
+        }
+
+        fromPojo(pojo) {
+            console.log(this.getTypename() + ".fromPojo(): " + mwfUtils.stringify(pojo));
+
+            var attr, managed, managedAttr, val;
+            for (attr in pojo) {
+
+                val = pojo[attr];
+
+                if (val != null && val != undefined) {
+                    // we need to consider whether the attribute is a managed attribute
+                    managed = this.managedAttributes[attr];
+                    if (managed) {
+
+                        managedAttr = attr + "Manager";
+
+                        if (managed.multiple) {
+                            // TODO: here we could check whether we actually have an array value
+                            // check whether the value is an object or not (i.e. an id)
+                            if (val.length > 0) {
+                                if (typeof val[0] == "object") {
+                                    // normally, we will have ids here, as fromPojo will be called with raw datasource output
+                                    val.forEach(function(obj){
+                                        // here, it is ok to use the mutable variable
+                                        this[managedAttr].push(obj);
+                                    }.bind(this));
+                                }
+                                else {
+                                    val.forEach(function(objid){
+                                        this[managedAttr].pushEntityref(objid);
+                                    }.bind(this));
+                                }
+                            }
+                        }
+                        else {
+                            if (typeof val == "object") {
+                                this[managedAttr].set(val);
+                            }
+                            else {
+                                this[managedAttr].setEntityref(val);
+                            }
+                        }
+                    }
+                    else {
+                        this[attr] = val;
+                    }
+                }
+                else {
+                    console.log("fromPojo(): will not set null/undefined value for attribute " + attr);
+                }
+            }
+
+            // at the end, we remove the managedAttributes, as otherwise they will show up in all toString/json representations
+            // #ES6: managedAttributes handling needs to be refactored!
+            // delete this.managedAttributes;
+            // /ES6
+
+        }
+
+        toPojo() {
+            var pojo = {};
+
+            // first of all, we add the type
+            pojo[typenameAttr] = this.getTypename();
+            //console.log(this.getTypename() + ".toPojo()");
+
+            // it seems that the managed attributes are not returned when iterating because they are declared by getters!
+            var attr, val;
+            for (attr in this) {
+
+                // we will not include the *Manager and managedAttributes
+                if (isProtectedMember.call(this,attr)) {
+                    //console.log("toPojo(): will not include member: " + attr);
+                }
+                else {
+                    val = this[attr];
+                    //console.log("handling member: " + attr + "=" + val);
+
+                    if (val != null) {
+                        //console.log("toPojo(): will not include attribute with null/undefined value: " + attr);
+                        pojo[attr] = val;
+                    }
+                }
+            }
+
+            // iterate over the managed attributes
+            var mattr, attrManagerName;
+            for (mattr in this.managedAttributes) {
+                attrManagerName = mattr + "Manager";
+                //console.log("toPojo() adding value of managed attribute: " + attr + ": " + this.attr + "/" + this[attrManagerName]);
+
+                if (this.managedAttributes[mattr].multiple) {
+                    pojo[mattr] = this[attrManagerName].getIds();
+                }
+                else {
+                    pojo[mattr] = this[attrManagerName].getId();
+                }
+            }
+
+            return pojo;
+        }
+
+        /*
+         * add crud functions directly on the entities
+         */
+        create(callback) {
+
+            // we need to check whether we have any non empty bidirectional attributes, in which case we first need to create ourselves shallowly for obtaining an id and afterwards update
+            // THIS WOULD ONLY BE NECESSARY IF WE ALLOWED FOR CASCADED CREATE! CURRENTLY ALL ENTITIES THAT MIGHT BE ADDED TO A MANAGED ATTRIBUTE NEED TO HAVE BEEN CREATED BEFORE!!!
+            //var twostepCreate;
+            //for (var attr in this.managedAttributes) {
+            // if (this.managedAttributes[attr].inverse) {
+            //  var attrManager = attr + "Manager";
+            //  if (this.managedAttributes[attr].multiple && this[attrManager].entities().length > 0) {
+            //   console.log("Entity.create(): we have a non empty inverse attribute: " + attr + ". Do twostep creation");
+            //   twostepCreate = true;
+            //   break;
+            //  }
+            //  else if (!this.managedAttributes[attr].multiple && this[attrManager].entity()) {
+            //   console.log("Entity.create(): we have a non empty inverse attribute: " + attr + ". Do twostep creation");
+            //   twostepCreate = true;
+            //   break;
+            //  }
+            // }
+            //}
+            //
+            //if (twostepCreate) {
+            // // move all attributes outside
+            // var content = em.newInstanceOfType(this.getTypename());
+            // for (var attr in this) {
+            //  content[attr] = this[attr];
+            //  delete this[attr];
+            // }
+            // // create the entity
+            // em.create(this.getTypename(),this,function(){
+            //  console.log("Entity.create(): twostep creation: assigned id: " + this._id + ". Now update with content");
+            //  em.update(this.getTypename(),this._id,content,function(updated){
+            //   console.log("Entity.create(): twostep creation: done.");
+            //   callback(this);
+            //  }.bind(this));
+            // }.bind(this));
+            //}
+            //else {
+            // console.log("Entity.create(): twostep creation is not necessary for given instance of " + this.getTypename());
+
+            // we need to check the inverse actions before running create as managers will be reset afterwards
+            console.log(this.getTypename() + ".create()");
+
+            var inverseManagers = prepareInverseOperations.call(this);
+
+            em.create(this.getTypename(),this,function(){
+                handleInverseOperations.call(this,inverseManagers,function(){
+                    if (callback) {
                         callback(this);
                     }
                 }.bind(this));
-            }
+            }.bind(this));
+
         }
-    };
+
+        // let entities access crud in order to implement custom operations!
+        getCRUD() {
+            return em.getCRUD(this.getTypename());
+        }
+
+        update(callback) {
+            console.log(this.getTypename() + ".update(): " + this._id);
+
+            var inverseManagers = prepareInverseOperations.call(this);
+
+            em.update(this.getTypename(),this._id,this,function(){
+                handleInverseOperations.call(this,inverseManagers,function(){
+                    if (callback) {
+                        callback(this);
+                    }
+                }.bind(this));
+            }.bind(this));
+
+        }
+
+        refresh(callback) {
+            console.log(this.getTypename() + ".refresh(): " + this._id);
+
+            em.refresh(this.getTypename(),this._id,function(){
+                if (callback) {
+                    callback(this);
+                }
+            }.bind(this));
+
+        }
+
+        delete(callback) {
+            console.log(this.getTypename() + ".delete(): " + this._id);
+
+            var inverseManagers = prepareInverseOperations.call(this);
+
+            em.delete(this.getTypename(),this._id,function(deleted){
+                handleInverseOperations.call(this,inverseManagers,function(){
+                    if (callback) {
+                        callback(deleted);
+                    }
+                }.bind(this),true);
+            }.bind(this));
+        }
+
+        static read(entityid,callback) {
+            // #ES6: we can access the information about the type of object for which read is called using the name property of this, because this will be the constructor function of the respective type!!!
+            console.log(this.name + ".read(): " + entityid);
+            em.read(this.name,entityid,callback);
+            // /ES6
+        }
+
+        static readAll(callback) {
+            // #ES6: access name of constructor function, which is the type (see above)
+            console.log(this.name + ".readAll()");
+            em.readAll(this.name,callback);
+            // /ES6
+        }
+
+        static getCRUD() {
+            // ES6: also for thie function, previously dealt with in xtends, we can use a static function
+            return em.getCrudopsForType(this.name);
+            // /ES6
+        }
+
+    }
 
     // a helper function that creates an initial uppercase singular version from some typename
     function singularise(attrname) {
@@ -1184,411 +1585,26 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
         }
     }
 
-    Entity.prototype.instantiateManagedAttributes = function() {
-        //console.log("instantiateManagedAttributes()");
-        var attr, attrManager;
-        for (attr in this.managedAttributes) {
-            attrManager = attr + "Manager";
-            if (this.managedAttributes[attr].multiple) {
-                this[attrManager] = new ManagedEntitiesArray(this.managedAttributes[attr]);
-            }
-            else {
-                this[attrManager] = new ManagedEntity(this.managedAttributes[attr]);
-            }
-        }
-    };
-
-    Entity.prototype.declareManagedAttribute = function (type,attrname,attrtypename,params) {
-        console.log("declareManagedAttribute(): " + type.prototype.getTypename() + "." + attrname + " of type: " + attrtypename);
-        // we add the typedef here (might be overridden by a crud operation declaration, but that's ok...)
-        // for abstract supertypes the typedef is required!
-        em.addTypedef(type);
-
-        // check whether for the given type we already have an entry
-        var currentTypeAttrs = allManagedAttributes.get(type);
-        if (!currentTypeAttrs) {
-            currentTypeAttrs = new Map();
-            allManagedAttributes.set(type,currentTypeAttrs);
-        }
-        if (params) {
-            params.attrtypename = attrtypename;
-        }
-        else {
-            params = {};
-            params.attrtypename = attrtypename;
-        }
-        currentTypeAttrs.set(attrname, params);
-    };
-
-    Entity.prototype.addManagedAttributeToType = function(type,attrname,attrtypename,params) {
-        console.log("addManagedAttributeToType(): " + this.getTypename() + "." + attrname + " of type " + attrtypename + "/" + params);
-        if (!params) {
-            params = {};
-        }
-
-        // check whether we have an inverse attribute specified and, lookup its description and replace it in the params
-        if (params.inverse) {
-            console.log("addManagedAttributeToType(): inverse attr is: " + params.inverse);
-            var inverseParams = em.getManagedAttributeParams(attrtypename,params.inverse);
-            inverseParams.attrname = params.inverse;
-            params.inverse = inverseParams;
-        }
-
-        // reengineer this!
-        if (!type.prototype.managedAttributes) {
-            type.prototype.managedAttributes = {};
-        }
-        type.prototype.managedAttributes[attrname] = params;
-        type.prototype.managedAttributes[attrname].type = attrtypename;
-        type.prototype.managedAttributes[attrname].attrname = attrname;
-
-
-        // TODO: on addManagedAttribute, the following declarations will be made given the name of the attribute
-        var attrManager = attrname + "Manager";
-
-        function handleInverseAttr(obj,params,remove) {
-            if (params.inverse && params.inverse.attrname) {
-                var inverseAttr = params.inverse.attrname;
-                var inverseAttrManager = inverseAttr + "Manager";
-                if (params.inverse.multiple) {
-                    if (this._id < 0 && !params.inverse.allowTransient) {
-                        console.error(obj.getTypename() + "." + inverseAttr + ".push(): will ignore transient entity without _id - you may consider setting allowTransient!");
-                    }
-                    else if (remove) {
-                        obj[inverseAttrManager].removeObj(this);
-                    }
-                    else {
-                        obj[inverseAttrManager].push(this);
-                    }
-                }
-                else {
-                    if (this._id < 0 && !params.inverse.allowTransient) {
-                        console.error(obj.getTypename() + "." + inverseAttr + ".set(): will ignore transient entity without _id - you may consider setting allowTransient!");
-                    }
-                    else if (remove) {
-                        obj[inverseAttrManager].set(this);
-                    }
-                    else {
-                        // this needs to be handled!
-                        obj[inverseAttrManager].set(null);
-                    }
-                }
-            }
-        }
-
-        var singularised = singularise(attrname);
-
-        if (!params.multiple) {
-            //Object.defineProperty(type.prototype,attrManager,{
-            // value: new ManagedEntity()
-            //});
-            Object.defineProperty(type.prototype,attrname,{
-                get: function() {
-                    return this[attrManager].entity();
-                },
-                set: function(obj) {
-                    if (obj._id < 0 && !params.allowTransient) {
-                        // this reference which is complained about as "potentially invalid" *is*, in fact, valid
-                        console.error(this.getTypename() + ".add" + singularised + "(): will ignore transient entity without _id - you may consider setting allowTransient!");
-                    }
-                    else {
-                        this[attrManager].set(obj);
-                        handleInverseAttr.call(this, obj, params);
-                    }
-                }
-            });
-        }
-        else {
-            //Object.defineProperty(type.prototype,attrManager,{
-            // value: new ManagedEntitiesArray()
-            //});
-            Object.defineProperty(type.prototype,attrname,{
-                get: function() {
-                    return this[attrManager].entities();
-                }
-            });
-            // add additional adder/remover/getter
-            type.prototype["add" + singularised] = function(obj) {
-                // check whether we have an id set!
-                if (obj._id < 0 && !params.allowTransient) {
-                    // valid this reference
-                    console.error(this.getTypename() + ".add" + singularised + "(): will ignore transient entity without _id - you may consider setting allowTransient!");
-                }
-                else {
-                    this[attrManager].push(obj);
-                    handleInverseAttr.call(this, obj, params);
-                }
-            };
-            type.prototype["remove" + singularised] = function(obj) {
-                this[attrManager].removeObj(obj);
-                handleInverseAttr.call(this,obj,params,true);
-            };
-            type.prototype["get" + singularised] = function(objid) {
-                return this[attrManager].getObj(objid);
-            };
-        }
-    };
-
-    Entity.prototype.removeEntityref = function (arr, entityid) {
-        // lookup the index
-        var index = -1, i;
-        for (i = 0; i < arr.length; i++) {
-            if (arr[i]._id == entityid) {
-                index = i;
-                break;
-            }
-        }
-        if (index > -1) {
-            arr.splice(index, 1);
-        }
-        else {
-            console.warn("canot remove entityref for " + entityid + " on instance of type " + this.getTypename() + ", it does not seem to exist...");
-        }
-    };
-
-    Entity.prototype.lookupEntityref = function (arr, entityid) {
-        var i;
-        for (i = 0; i < arr.length; i++) {
-            if (arr[i]._id == entityid) {
-                return arr[i];
-            }
-        }
-        return null;
-    };
-
-    Entity.prototype.fromPojo = function(pojo) {
-        console.log(this.getTypename() + ".fromPojo(): " + mwfUtils.stringify(pojo));
-
-        var attr, managed, managedAttr, val;
-        for (attr in pojo) {
-
-            val = pojo[attr];
-
-            if (val != null && val != undefined) {
-                // we need to consider whether the attribute is a managed attribute
-                managed = this.managedAttributes[attr];
-                if (managed) {
-
-                    managedAttr = attr + "Manager";
-
-                    if (managed.multiple) {
-                        // TODO: here we could check whether we actually have an array value
-                        // check whether the value is an object or not (i.e. an id)
-                        if (val.length > 0) {
-                            if (typeof val[0] == "object") {
-                                // normally, we will have ids here, as fromPojo will be called with raw datasource output
-                                val.forEach(function(obj){
-                                    // here, it is ok to use the mutable variable
-                                    this[managedAttr].push(obj);
-                                }.bind(this));
-                            }
-                            else {
-                                val.forEach(function(objid){
-                                    this[managedAttr].pushEntityref(objid);
-                                }.bind(this));
-                            }
-                        }
-                    }
-                    else {
-                        if (typeof val == "object") {
-                            this[managedAttr].set(val);
-                        }
-                        else {
-                            this[managedAttr].setEntityref(val);
-                        }
-                    }
-                }
-                else {
-                    this[attr] = val;
-                }
-            }
-            else {
-                console.log("fromPojo(): will not set null/undefined value for attribute " + attr);
-            }
-        }
-
-        // at the end, we remove the managedAttributes, as otherwise they will show up in all toString/json representations
-        delete this.managedAttributes;
-
-    };
-
-    Entity.prototype.toPojo = function() {
-        var pojo = {};
-
-        // first of all, we add the type
-        pojo[typenameAttr] = this.getTypename();
-        //console.log(this.getTypename() + ".toPojo()");
-
-        // it seems that the managed attributes are not returned when iterating because they are declared by getters!
-        var attr, val;
-        for (attr in this) {
-
-            // we will not include the *Manager and managedAttributes
-            if (isProtectedMember.call(this,attr)) {
-                //console.log("toPojo(): will not include member: " + attr);
-            }
-            else {
-                val = this[attr];
-                //console.log("handling member: " + attr + "=" + val);
-
-                if (val != null) {
-                    //console.log("toPojo(): will not include attribute with null/undefined value: " + attr);
-                    pojo[attr] = val;
-                }
-            }
-        }
-
-        // iterate over the managed attributes
-        var mattr, attrManagerName;
-        for (mattr in this.managedAttributes) {
-            attrManagerName = mattr + "Manager";
-            //console.log("toPojo() adding value of managed attribute: " + attr + ": " + this.attr + "/" + this[attrManagerName]);
-
-            if (this.managedAttributes[mattr].multiple) {
-                pojo[mattr] = this[attrManagerName].getIds();
-            }
-            else {
-                pojo[mattr] = this[attrManagerName].getId();
-            }
-        }
-
-        return pojo;
-    };
-
-    /*
-     * add crud functions directly on the entities
-     */
-    Entity.prototype.create = function(callback) {
-
-        // we need to check whether we have any non empty bidirectional attributes, in which case we first need to create ourselves shallowly for obtaining an id and afterwards update
-        // THIS WOULD ONLY BE NECESSARY IF WE ALLOWED FOR CASCADED CREATE! CURRENTLY ALL ENTITIES THAT MIGHT BE ADDED TO A MANAGED ATTRIBUTE NEED TO HAVE BEEN CREATED BEFORE!!!
-        //var twostepCreate;
-        //for (var attr in this.managedAttributes) {
-        // if (this.managedAttributes[attr].inverse) {
-        //  var attrManager = attr + "Manager";
-        //  if (this.managedAttributes[attr].multiple && this[attrManager].entities().length > 0) {
-        //   console.log("Entity.create(): we have a non empty inverse attribute: " + attr + ". Do twostep creation");
-        //   twostepCreate = true;
-        //   break;
-        //  }
-        //  else if (!this.managedAttributes[attr].multiple && this[attrManager].entity()) {
-        //   console.log("Entity.create(): we have a non empty inverse attribute: " + attr + ". Do twostep creation");
-        //   twostepCreate = true;
-        //   break;
-        //  }
-        // }
-        //}
-        //
-        //if (twostepCreate) {
-        // // move all attributes outside
-        // var content = em.newInstanceOfType(this.getTypename());
-        // for (var attr in this) {
-        //  content[attr] = this[attr];
-        //  delete this[attr];
-        // }
-        // // create the entity
-        // em.create(this.getTypename(),this,function(){
-        //  console.log("Entity.create(): twostep creation: assigned id: " + this._id + ". Now update with content");
-        //  em.update(this.getTypename(),this._id,content,function(updated){
-        //   console.log("Entity.create(): twostep creation: done.");
-        //   callback(this);
-        //  }.bind(this));
-        // }.bind(this));
-        //}
-        //else {
-        // console.log("Entity.create(): twostep creation is not necessary for given instance of " + this.getTypename());
-
-        // we need to check the inverse actions before running create as managers will be reset afterwards
-        console.log(this.getTypename() + ".create()");
-
-        var inverseManagers = prepareInverseOperations.call(this);
-
-        em.create(this.getTypename(),this,function(){
-            handleInverseOperations.call(this,inverseManagers,function(){
-                if (callback) {
-                    callback(this);
-                }
-            }.bind(this));
-        }.bind(this));
-
-    };
-
-    // let entities access crud in order to implement custom operations!
-    Entity.prototype.getCRUD = function() {
-        return em.getCRUD(this.getTypename());
-    };
-
-    Entity.prototype.update = function(callback) {
-        console.log(this.getTypename() + ".update(): " + this._id);
-
-        var inverseManagers = prepareInverseOperations.call(this);
-
-        em.update(this.getTypename(),this._id,this,function(){
-            handleInverseOperations.call(this,inverseManagers,function(){
-                if (callback) {
-                    callback(this);
-                }
-            }.bind(this));
-        }.bind(this));
-
-    };
-
-    Entity.prototype.refresh = function(callback) {
-        console.log(this.getTypename() + ".refresh(): " + this._id);
-
-        em.refresh(this.getTypename(),this._id,function(){
-            if (callback) {
-                callback(this);
-            }
-        }.bind(this));
-
-    };
-
-    Entity.prototype.delete = function(callback) {
-        console.log(this.getTypename() + ".delete(): " + this._id);
-
-        var inverseManagers = prepareInverseOperations.call(this);
-
-        em.delete(this.getTypename(),this._id,function(deleted){
-            handleInverseOperations.call(this,inverseManagers,function(){
-                if (callback) {
-                    callback(deleted);
-                }
-            }.bind(this),true);
-        }.bind(this));
-    };
-
-    Entity.prototype.read = function(entityid,callback) {
-        console.log(this.getTypename() + ".read(): " + entityid);
-        em.read(this.getTypename(),entityid,callback);
-
-    };
-
-    Entity.prototype.readAll = function(callback) {
-        console.log(this.getTypename() + ".readAll()");
-        em.readAll(this.getTypename(),callback);
-    };
-
-
     /*
      * we decorate the default xtends method and add static accessors to the type if it is an entitytype
+     * ES6: this is not required anymore because we can declare the functions as static functions on Entity!
      */
-    function xtends(base,supertype) {
-        mwfUtils.xtends(base,supertype);
-
-        if (supertype.prototype instanceof Entity || supertype == Entity) {
-            base.read = function(entityid,callback) {
-                (new base()).read(entityid,callback);
-            };
-            base.readAll = function(callback) {
-                (new base()).readAll(callback);
-            };
-            // we also add a function that gives us the crud implementation for the given entity
-            base.getCRUD = function() {
-                return em.getCrudopsForType((new base()).getTypename());
-            };
-        }
-    }
+    // function xtends(base,supertype) {
+    //     mwfUtils.xtends(base,supertype);
+    //
+    //     if (supertype.prototype instanceof Entity || supertype == Entity) {
+    //         base.read = function(entityid,callback) {
+    //             (new base()).read(entityid,callback);
+    //         };
+    //         base.readAll = function(callback) {
+    //             (new base()).readAll(callback);
+    //         };
+    //         // we also add a function that gives us the crud implementation for the given entity
+    //         base.getCRUD = function() {
+    //             return em.getCrudopsForType((new base()).getTypename());
+    //         };
+    //     }
+    // }
 
     function setTypenameAttr(name) {
         console.log("setting typename attr: " + name);
@@ -1597,7 +1613,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
 
     return {
         resetCRUD: em.resetCRUD,
-        xtends: xtends,
+        // xtends: xtends,
         Entity: Entity,
         ManagedEntity: ManagedEntity,
         ManagedEntitiesArray: ManagedEntitiesArray,

@@ -1151,6 +1151,10 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
          */
         instantiateManagedAttributes() {
             // console.log("instantiateManagedAttributes()",this.constructor.prototype);
+            if (!this.constructor.prototype.managedAttributes) {
+                this.constructor.prototype.managedAttributes = {};
+            }
+
             var attr, attrManager;
             for (attr in this.constructor.prototype.managedAttributes) {
                 // console.log("instantiateManagedAttributes(): creating manager: " + attrManager);

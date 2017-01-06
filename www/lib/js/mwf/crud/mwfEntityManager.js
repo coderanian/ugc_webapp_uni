@@ -84,7 +84,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
         this.initialise = function() {
             // try out to process the managed attributes here
             if (!initialised) {
-                console.log("EntityManager has not yet been initialised. Run...");
+                console.log("EntityManager has not yet been initialised. Run and add managedAttributes",allManagedAttributes);
                 // TODO: the forllowing foreach functions should be looked at
                 allManagedAttributes.forEach(function (attrs, type){
                     attrs.forEach(function (params, attr) {
@@ -307,7 +307,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
             // we delete any existing local id
             delete entity._id;
             // first of all, we remove the managedAttributes property
-            // #ES6: managedAttributes handling needs to be refactored! (might need to be added as static member to type declaration?)
+            // #ES6: not required anymore, managed attributes declarations are stored in prototype
             // delete entity.managedAttributes;
             // /ES6
 
@@ -1084,7 +1084,11 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
 
         constructor() {
             this._id = nextLocalId();
-            this.managedAttributes = {};
+            // #ES6: this is not required anymore! /ES6
+            // this.managedAttributes = {};
+
+            // #ES6: instantiate managed attributes here, which relieves subclasses from manually invoking this method /ES6
+            this.instantiateManagedAttributes();
         }
 
         get created() {
@@ -1119,7 +1123,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
         postLoad(callback) {
             console.log("postLoad(): " + this._id + "@" + this.getTypename() + ":", this);
 
-            var attrsCountdown = Object.keys(this.managedAttributes).length;
+            var attrsCountdown = Object.keys(this.constructor.prototype.managedAttributes).length;
 
 
             if (attrsCountdown == 0) {
@@ -1129,7 +1133,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
             else {
                 console.log("postLoad(): considering " + attrsCountdown + " managed attributes");
                 var attr, attrManager;
-                for (attr in this.managedAttributes) {
+                for (attr in this.constructor.prototype.managedAttributes) {
                     attrManager = attr + "Manager";
                     this[attrManager].load(function () {
                         attrsCountdown--;
@@ -1142,16 +1146,20 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
             }
         }
 
+        /*
+         * #ES6: managed attributes need to be read out from the prototype object, which is accessible via the constructor /ES6
+         */
         instantiateManagedAttributes() {
-            //console.log("instantiateManagedAttributes()");
+            // console.log("instantiateManagedAttributes()",this.constructor.prototype);
             var attr, attrManager;
-            for (attr in this.managedAttributes) {
+            for (attr in this.constructor.prototype.managedAttributes) {
+                // console.log("instantiateManagedAttributes(): creating manager: " + attrManager);
                 attrManager = attr + "Manager";
-                if (this.managedAttributes[attr].multiple) {
-                    this[attrManager] = new ManagedEntitiesArray(this.managedAttributes[attr]);
+                if (this.constructor.prototype.managedAttributes[attr].multiple) {
+                    this[attrManager] = new ManagedEntitiesArray(this.constructor.prototype.managedAttributes[attr]);
                 }
                 else {
-                    this[attrManager] = new ManagedEntity(this.managedAttributes[attr]);
+                    this[attrManager] = new ManagedEntity(this.constructor.prototype.managedAttributes[attr]);
                 }
             }
         }
@@ -1324,7 +1332,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
 
                 if (val != null && val != undefined) {
                     // we need to consider whether the attribute is a managed attribute
-                    managed = this.managedAttributes[attr];
+                    managed = this.constructor.prototype.managedAttributes[attr];
                     if (managed) {
 
                         managedAttr = attr + "Manager";
@@ -1366,7 +1374,7 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
             }
 
             // at the end, we remove the managedAttributes, as otherwise they will show up in all toString/json representations
-            // #ES6: managedAttributes handling needs to be refactored!
+            // #ES6: not required anymore, managedAttributes declaration is stored in prototype object
             // delete this.managedAttributes;
             // /ES6
 
@@ -1400,11 +1408,11 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
 
             // iterate over the managed attributes
             var mattr, attrManagerName;
-            for (mattr in this.managedAttributes) {
+            for (mattr in this.constructor.prototype.managedAttributes) {
                 attrManagerName = mattr + "Manager";
                 //console.log("toPojo() adding value of managed attribute: " + attr + ": " + this.attr + "/" + this[attrManagerName]);
 
-                if (this.managedAttributes[mattr].multiple) {
+                if (this.constructor.prototype.managedAttributes[mattr].multiple) {
                     pojo[mattr] = this[attrManagerName].getIds();
                 }
                 else {
@@ -1556,9 +1564,9 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
     function prepareInverseOperations() {
         var managers = [];
         var attr, attrManager;
-        for (attr in this.managedAttributes) {
+        for (attr in this.constructor.prototype.managedAttributes) {
             attrManager = attr + "Manager";
-            if (this.managedAttributes[attr].inverse) {
+            if (this.constructor.prototype.managedAttributes[attr].inverse) {
                 managers.push(this[attrManager]);
             }
         }

@@ -14,13 +14,14 @@ define(["mwfUtils", "EntityManager"], function (mwfUtils, EntityManager) {
      * example entity
      *************/
 
-    function MyEntity() {
-        this.instantiateManagedAttributes();
+    class MyEntity extends EntityManager.Entity {
+
+        constructor() {
+            super();
+        }
+
     }
-
-    // use EntityManager.xtends in order to add entity-specific behaviour
-    EntityManager.xtends(MyEntity, EntityManager.Entity);
-
+    
     // TODO-REPEATED: add new entity type declarations here
 
     // TODO-REPEATED: do not forget to export all type declarations

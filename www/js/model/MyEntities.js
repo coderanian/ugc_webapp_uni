@@ -21,7 +21,7 @@ define(["mwfUtils", "EntityManager"], function (mwfUtils, EntityManager) {
         }
 
     }
-    
+
     // TODO-REPEATED: add new entity type declarations here
 
     // TODO-REPEATED: do not forget to export all type declarations

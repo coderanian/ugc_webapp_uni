@@ -3,19 +3,21 @@
  */
 define(["mwf", "mwfUtils", "EntityManager", "entities", "GenericCRUDImplLocal", "GenericCRUDImplRemote"], function (mwf, mwfUtils, EntityManager, entities, GenericCRUDImplLocal, GenericCRUDImplRemote) {
 
-    function MyApplication() {
+    class MyApplication extends mwf.Application {
 
-        var proto = MyApplication.prototype;
+        constructor() {
+            super();
+        }
 
-        this.oncreate = function (callback) {
+        oncreate(callback) {
             console.log("MyApplication.oncreate(): calling supertype oncreate");
 
             // first call the supertype method and pass a callback
-            proto.oncreate.call(this, function () {
+            super.oncreate(() => {
 
                 // initialise the local database
                 // TODO-REPEATED: add new entity types to the array of object store names
-                GenericCRUDImplLocal.initialiseDB("mwftutdb", 1, ["MyEntity"], function () {
+                GenericCRUDImplLocal.initialiseDB("mwftutdb", 1, ["MyEntity"], (() => {
 
                     //// TODO-REPEATED: if entity manager is used, register entities and crud operations for the entity types
                     //this.registerEntity("MyEntity", entities.MyEntity, true);
@@ -29,16 +31,13 @@ define(["mwf", "mwfUtils", "EntityManager", "entities", "GenericCRUDImplLocal", 
 
                     // do not forget to call the callback
                     callback();
-                }.bind(this));
+                }));
 
-
-            }.bind(this));
+            });
 
         };
 
     }
-
-    mwf.xtends(MyApplication, mwf.Application);
 
     return new MyApplication();
 

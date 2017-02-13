@@ -52,7 +52,7 @@ define(["mwf", "entities"], function (mwf, entities) {
          */
         bindDialog(dialogid, dialog, item) {
             // call the supertype function
-            super.bindDialog(this, dialogid, dialog, item);
+            super.bindDialog(dialogid, dialog, item);
 
             // TODO: implement action bindings for dialog, accessing dialog.root
         }

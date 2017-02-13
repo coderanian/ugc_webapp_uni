@@ -369,14 +369,6 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
         };
     }
 
-    // for the time being, we simply reset all forms
-    function prepareForms(element) {
-        var formEls = element.getElementsByTagName("form");
-        var i;
-        for (i=0;i<formEls.length;i++) {
-            formEls[i].reset();
-        }
-    }
 
     /*
      * a listview adapter that binds a list of objects to a view - we pass the controller, which will be called back for determining the view of a single element
@@ -515,705 +507,731 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
     /*
      * generic view controller implementation
      */
-    function ViewController() {
+    class ViewController {
 
-        this.lcstatus = CONSTANTS.LIFECYCLE.CONSTRUCTED;
+        constructor() {
+            this.lcstatus = CONSTANTS.LIFECYCLE.CONSTRUCTED;
 
-        this.pendingEventListeners = [];
+            this.pendingEventListeners = [];
 
-        // the root of our view
-        this.root = null;
-        // the args that we are using
-        this.args = null;
-        // hold a dialog
-        this.dialog = null;
+            // the root of our view
+            this.root = null;
+            // the args that we are using
+            this.args = null;
+            // hold a dialog
+            this.dialog = null;
 
-        // we may manage multiple listview adapters (see e.g. search results in spotify)
-        this.listviewAdapters = {};
+            // we may manage multiple listview adapters (see e.g. search results in spotify)
+            this.listviewAdapters = {};
 
-        // if we have an actionmenu this attribute contains a map from menu item ids to the dom elements that represent the item - note that manipulation of this list is not possible - if new items shall be added, it needs to be done via onPrepareActionmenu
-        // maybe this should be removed...
-        this.actionmenuItems = {};
+            // if we have an actionmenu this attribute contains a map from menu item ids to the dom elements that represent the item - note that manipulation of this list is not possible - if new items shall be added, it needs to be done via onPrepareActionmenu
+            // maybe this should be removed...
+            this.actionmenuItems = {};
+        }
 
-    }
+        /*
+         * an event listener that hides all overlay elements - we need to declare it like this in order to be able to access it from the lifecycle functions
+         * it will be added oncreate and onresune, and removed onpause and onstop
+         */
+        hideOverlays() {
+            console.log("hideOverlays(): " + this.root);
+            // on nextview we need to hide anything that is dialog
+            hideMenusAndDialogs.call(this);
+        }
 
-    /*
-     * an event listener that hides all overlay elements - we need to declare it like this in order to be able to access it from the lifecycle functions
-     * it will be added oncreate and onresune, and removed onpause and onstop
-     */
-    ViewController.prototype.hideOverlays = function () {
-        console.log("hideOverlays(): " + this.root);
-        // on nextview we need to hide anything that is dialog
-        hideMenusAndDialogs.call(this);
-    };
+        /*
+         * inheritable and overridable prototype functions (instance methods) of ViewController
+         *
+         * notice the reference from prototype functions to instance attributes via this - this allows for each subclass instace to inherit the functions while accessing their own attributes
+         */
+        setViewAndArgs(view, args) {
+            console.log("ViewController.setViewAndArgs(): " + view.id);
+            console.log("ViewController.setViewAndArgs() view: " + view + ", args: " + (args ? mwfUtils.stringify(args) : " no args"));
 
-    /*
-     * inheritable and overridable prototype functions (instance methods) of ViewController
-     *
-     * notice the reference from prototype functions to instance attributes via this - this allows for each subclass instace to inherit the functions while accessing their own attributes
-     */
-    ViewController.prototype.setViewAndArgs = function (view, args) {
-        console.log("ViewController.setViewAndArgs(): " + view.id);
-        console.log("ViewController.setViewAndArgs() view: " + view + ", args: " + (args ? mwfUtils.stringify(args) : " no args"));
+            this.root = view;
+            this.args = args;
 
-        this.root = view;
-        this.args = args;
+        }
 
-    };
+        /*
+         * if the view has already been set (e.g. for dialogs), args can be passed
+         */
+        setArgs(args) {
+            console.log("ViewController.setArgs(): id: " + this.root.id);
+            console.log("ViewController.setArgs(): args: " + (args ? mwfUtils.stringify(args) : " no args"));
 
-    /*
-     * if the view has already been set (e.g. for dialogs), args can be passed
-     */
-    ViewController.prototype.setArgs = function (args) {
-        console.log("ViewController.setArgs(): id: " + this.root.id);
-        console.log("ViewController.setArgs(): args: " + (args ? mwfUtils.stringify(args) : " no args"));
+            this.args = args;
+        }
 
-        this.args = args;
-    };
+        /*
+         * this function is not publicly exposed
+         * #ES6: make it an instance method /ES6
+         */
+        prepareActionmenu() {
+            console.log("prepareActionmenu()");
+            // initialise the actionmenu if one exists
+            var actionmenuControl = this.root.getElementsByClassName("mwf-actionmenu-control");
+            var actionmenu = this.root.getElementsByClassName("mwf-actionmenu");
+            if (actionmenuControl.length > 0) {
+                actionmenuControl = actionmenuControl[0];
+                actionmenu = actionmenu[0];
 
-    // this function is not publicly exposed
-    function prepareActionmenu() {
-        console.log("prepareActionmenu()");
-        // initialise the actionmenu if one exists
-        var actionmenuControl = this.root.getElementsByClassName("mwf-actionmenu-control");
-        var actionmenu = this.root.getElementsByClassName("mwf-actionmenu");
-        if (actionmenuControl.length > 0) {
-            actionmenuControl = actionmenuControl[0];
-            actionmenu = actionmenu[0];
-
-            /*
-             * control opening and closing the menu
-             */
-            actionmenuControl.onclick = function (event) {
-                // we do not propagate it upwards...
-                event.stopPropagation();
-                // if the menu is not expanded prenventionally close a sidemenu if one exists
-                if (!actionmenu.classList.contains("mwf-expanded")) {
-                    hideMenusAndDialogs.call(this);
-                    this.onPrepareActionmenu(actionmenu, function (actionmenu) {
-                        actionmenu.removeEventListener("click", cancelClickPropagation);
-                        actionmenu.addEventListener("click", cancelClickPropagation);
-                        actionmenu.classList.toggle("mwf-expanded");
-                    }.bind(this));
-                }
-                else {
-                    actionmenu.classList.remove("mwf-expanded");
-                }
-            }.bind(this);
-
-            /*
-             * update the local representation of the actionmenuItems and set listeners on the menu items
-             */
-            this.updateActionmenuItems(actionmenu);
-            var itemid;
-            for (itemid in this.actionmenuItems) {
-                // set listener
-                this.actionmenuItems[itemid].onclick = function (event) {
-                    // inside the event handler we MUST NOT use the expression this.actionmenuItems[itemid] because it will always point to the last element in the list...
-                    // TODO: we could let the item control whether the menu shall be closed or not (closing is default, as then the click event bubbles upwards)
-                    if (event.currentTarget.classList.contains("mwf-menu-item")) {
-                        this.onActionmenuItemSelected(event.currentTarget);
+                /*
+                 * control opening and closing the menu
+                 */
+                actionmenuControl.onclick = function (event) {
+                    // we do not propagate it upwards...
+                    event.stopPropagation();
+                    // if the menu is not expanded prenventionally close a sidemenu if one exists
+                    if (!actionmenu.classList.contains("mwf-expanded")) {
+                        hideMenusAndDialogs.call(this);
+                        this.onPrepareActionmenu(actionmenu, function (actionmenu) {
+                            actionmenu.removeEventListener("click", cancelClickPropagation);
+                            actionmenu.addEventListener("click", cancelClickPropagation);
+                            actionmenu.classList.toggle("mwf-expanded");
+                        }.bind(this));
+                    }
+                    else {
+                        actionmenu.classList.remove("mwf-expanded");
                     }
                 }.bind(this);
+
+                /*
+                 * update the local representation of the actionmenuItems and set listeners on the menu items
+                 */
+                this.updateActionmenuItems(actionmenu);
+                var itemid;
+                for (itemid in this.actionmenuItems) {
+                    // set listener
+                    this.actionmenuItems[itemid].onclick = function (event) {
+                        // inside the event handler we MUST NOT use the expression this.actionmenuItems[itemid] because it will always point to the last element in the list...
+                        // TODO: we could let the item control whether the menu shall be closed or not (closing is default, as then the click event bubbles upwards)
+                        if (event.currentTarget.classList.contains("mwf-menu-item")) {
+                            this.onActionmenuItemSelected(event.currentTarget);
+                        }
+                    }.bind(this);
+                }
+            }
+
+        }
+
+        // for the time being, we simply reset all forms
+        // #ES6: make it instance method of view controller
+        prepareForms(element) {
+            var formEls = element.getElementsByTagName("form");
+            var i;
+            for (i=0;i<formEls.length;i++) {
+                formEls[i].reset();
             }
         }
 
-    }
+        /*
+         * this is for initialising generic listview funcitonality
+         * #ES6: make it an instance method /ES6
+         */
+        prepareListviews() {
+            console.log("prepareListviews()");
+            // read out listviews (! we might have more than a single listview, see e.g. types search results in spotify etc.)
+            var listviews = this.root.getElementsByClassName("mwf-listview");
+            if (listviews.length == 0) {
+                console.log("prepareListviews(): view " + this.root.id + " does not use listviews");
+            }
+            else if (this.listviewsPrepared) {
+                console.warn("prepareListviews(): views seem to have been prepared already for " + this.root.id + ". Ignore call...");
+            }
+            else {
+                console.log("prepareListviews(): found " + listviews.length + " listviews");
 
-    /* this is for initialising generic listview funcitonality */
-    function prepareListviews() {
-        console.log("prepareListviews()");
-        // read out listviews (! we might have more than a single listview, see e.g. types search results in spotify etc.)
-        var listviews = this.root.getElementsByClassName("mwf-listview");
-        if (listviews.length == 0) {
-            console.log("prepareListviews(): view " + this.root.id + " does not use listviews");
-        }
-        else if (this.listviewsPrepared) {
-            console.warn("prepareListviews(): views seem to have been prepared already for " + this.root.id + ". Ignore call...");
-        }
-        else {
-            console.log("prepareListviews(): found " + listviews.length + " listviews");
+                // this is the listview selection handler that both covers item selection and item menu selection - note that we use a single function that will handle all listviews (if there exists more than one)
+                var listviewSelectionListener = function (event) {
 
-            // this is the listview selection handler that both covers item selection and item menu selection - note that we use a single function that will handle all listviews (if there exists more than one)
-            var listviewSelectionListener = function (event) {
+                    // ignore the list selection if there is any overlay shown
+                    // TODO: these checks should be implemented in a less resource consuming way...
+                    if (document.querySelector(".mwf-listitem-menu.mwf-shown") || document.querySelector(".mwf-sidemenu.mwf-expanded") || document.querySelector(".mwf-actionmenu.mwf-expanded") || document.querySelector(".mwf-dialog.mwf-shown")) {
+                        console.log("ignore list item selection. There is an active dialog!");
+                        return;
+                    }
 
-                // ignore the list selection if there is any overlay shown
-                // TODO: these checks should be implemented in a less resource consuming way...
-                if (document.querySelector(".mwf-listitem-menu.mwf-shown") || document.querySelector(".mwf-sidemenu.mwf-expanded") || document.querySelector(".mwf-actionmenu.mwf-expanded") || document.querySelector(".mwf-dialog.mwf-shown")) {
-                    console.log("ignore list item selection. There is an active dialog!");
-                    return;
-                }
+                    // we need to recursively look up the potential targets that are interesting for us, we always collect the listitem and the listview
+                    function lookupTarget(currentNode, eventData) {
+                        // using templating, lookup does not work because there are cycles...
+                        //console.log("lookupTarget(): " + JSON.stringify(eventData));
 
-                // we need to recursively look up the potential targets that are interesting for us, we always collect the listitem and the listview
-                function lookupTarget(currentNode, eventData) {
-                    // using templating, lookup does not work because there are cycles...
-                    //console.log("lookupTarget(): " + JSON.stringify(eventData));
-
-                    // if we have reached the listview, the event is not of interest for us
-                    if (currentNode.classList.contains("mwf-listview")) {
-                        if (!eventData) {
-                            console.log("got click/touch event on listview, but neither a listitem, nor a listitem menu seems to have been selected");
+                        // if we have reached the listview, the event is not of interest for us
+                        if (currentNode.classList.contains("mwf-listview")) {
+                            if (!eventData) {
+                                console.log("got click/touch event on listview, but neither a listitem, nor a listitem menu seems to have been selected");
+                            }
+                            else {
+                                eventData.listview = currentNode;
+                            }
+                        }
+                        // if we have reached the menu control, we need to move upwards because we still need to find out which item is meant
+                        else if (currentNode.classList.contains("mwf-listitem-menu-control")) {
+                            if (!eventData) {
+                                eventData = {};
+                            }
+                            console.log("found a listitem-menu in listview event");
+                            eventData.eventType = "itemMenuSelected";
+                            eventData = lookupTarget(currentNode.parentNode, eventData);
+                        }
+                        // also allow to embed actions directly in list items
+                        else if (currentNode.classList.contains("mwf-listitem-action")) {
+                            if (!eventData) {
+                                eventData = {};
+                            }
+                            console.log("found a listitem-action in listview event");
+                            eventData.eventType = "itemActionSelected";
+                            eventData.listitemAction = currentNode;
+                            eventData = lookupTarget(currentNode.parentNode, eventData);
+                        }
+                        else if (currentNode.classList.contains("mwf-listitem")) {
+                            console.log("found a listitem in listview event");
+                            if (!eventData) {
+                                eventData = {};
+                            }
+                            else if (!eventData.eventType) {
+                                eventData.eventType = "itemSelected";
+                                console.log("listview event is item selection");
+                            }
+                            // here we set the item
+                            eventData.listitem = currentNode;
+                            eventData = lookupTarget(currentNode.parentNode, eventData);
                         }
                         else {
-                            eventData.listview = currentNode;
+                            eventData = lookupTarget(currentNode.parentNode, eventData);
                         }
+
+                        return eventData;
                     }
-                    // if we have reached the menu control, we need to move upwards because we still need to find out which item is meant
-                    else if (currentNode.classList.contains("mwf-listitem-menu-control")) {
-                        if (!eventData) {
-                            eventData = {};
+
+                    // we lookup the target
+                    var eventData = lookupTarget(event.target);
+
+                    //console.log("loopupTarget(): result is: " + (eventData ? JSON.stringify(eventData) : " no target found!"));
+
+                    if (eventData) {
+                        event.stopPropagation();
+                        mwfUtils.removeTouch(eventData.listitem);
+
+                        // if we have an itemMenuSelected event we stop propagation - otherwise a itemSelection event will be triggered
+                        if (eventData.eventType == "itemMenuSelected") {
+                            this.onListItemMenuSelected(eventData.listitem, eventData.listview);
                         }
-                        console.log("found a listitem-menu in listview event");
-                        eventData.eventType = "itemMenuSelected";
-                        eventData = lookupTarget(currentNode.parentNode, eventData);
-                    }
-                    // also allow to embed actions directly in list items
-                    else if (currentNode.classList.contains("mwf-listitem-action")) {
-                        if (!eventData) {
-                            eventData = {};
+                        // we invoke the itemMenuItemSelected function which will also be called when selecting an action from the action menu
+                        else if (eventData.eventType == "itemActionSelected") {
+                            this.onListItemMenuItemSelected(eventData.listitemAction, eventData.listitem, eventData.listview);
                         }
-                        console.log("found a listitem-action in listview event");
-                        eventData.eventType = "itemActionSelected";
-                        eventData.listitemAction = currentNode;
-                        eventData = lookupTarget(currentNode.parentNode, eventData);
-                    }
-                    else if (currentNode.classList.contains("mwf-listitem")) {
-                        console.log("found a listitem in listview event");
-                        if (!eventData) {
-                            eventData = {};
+                        else {
+                            this.onListItemElementSelected(eventData.listitem, eventData.listview);
                         }
-                        else if (!eventData.eventType) {
-                            eventData.eventType = "itemSelected";
-                            console.log("listview event is item selection");
-                        }
-                        // here we set the item
-                        eventData.listitem = currentNode;
-                        eventData = lookupTarget(currentNode.parentNode, eventData);
-                    }
-                    else {
-                        eventData = lookupTarget(currentNode.parentNode, eventData);
-                    }
-
-                    return eventData;
-                }
-
-                // we lookup the target
-                var eventData = lookupTarget(event.target);
-
-                //console.log("loopupTarget(): result is: " + (eventData ? JSON.stringify(eventData) : " no target found!"));
-
-                if (eventData) {
-                    event.stopPropagation();
-                    mwfUtils.removeTouch(eventData.listitem);
-
-                    // if we have an itemMenuSelected event we stop propagation - otherwise a itemSelection event will be triggered
-                    if (eventData.eventType == "itemMenuSelected") {
-                        this.onListItemMenuSelected(eventData.listitem, eventData.listview);
-                    }
-                    // we invoke the itemMenuItemSelected function which will also be called when selecting an action from the action menu
-                    else if (eventData.eventType == "itemActionSelected") {
-                        this.onListItemMenuItemSelected(eventData.listitemAction, eventData.listitem, eventData.listview);
-                    }
-                    else {
-                        this.onListItemElementSelected(eventData.listitem, eventData.listview);
-                    }
-                }
-
-            }.bind(this);
-
-            // we set it on all listviews
-            var i;
-            for (i = 0; i < listviews.length; i++) {
-                // we add the listview under its id (not mwf-id!) to the listviews map
-                this.listviewAdapters[listviews[i].id] = new ListviewAdapter(listviews[i], this, applicationResources);
-                listviews[i].onclick = listviewSelectionListener;
-            }
-
-            this.listviewsPrepared = true;
-
-        }
-    }
-
-    /*
-     * implements default behaviour for actionmenu. subtypes might override the function to cover behaviour that is not dealt with generically here
-     */
-    ViewController.prototype.onActionmenuItemSelected = function (item) {
-        if (item.classList.contains("mwf-disabled")) {
-            console.log("ViewController.onActionmenuItemSelected(): action is disabled!");
-        }
-        else {
-            console.log("ViewController.onActionmenuItemSelected(): " + item);
-            // check whether the menu item has a data-mwf-targetview or data-mwf-targetaction attribute
-            if (item.hasAttribute("data-mwf-targetview")) {
-                var targetview = item.getAttribute("data-mwf-targetview");
-                console.log("ViewController.onActionmenuItemSelected(): item specifies a targetview: " + targetview);
-                this.nextView(targetview);
-            }
-            else if (item.hasAttribute("data-mwf-targetaction")) {
-                var targetaction = item.getAttribute("data-mwf-targetaction");
-                console.log("ViewController.onActionmenuItemSelected(): item specifies a targetaction: " + targetaction);
-                // we invoke the function dynamically - TODO: need to check how this can be done more elegantly than using eval
-                var targetactionfunction = "this." + targetaction + "()";
-                eval(targetactionfunction);
-            }
-            else {
-                alert("Cannot handle actionmenu item with mwf-id: " + item.getAttribute("data-mwf-id") + "! Remove the item or override onActionmenuItemSelected locally!");
-            }
-        }
-    };
-
-    /*
-     * allows subtypes to react to itemMenu selection - this is the default implementation that uses the mwf-listitem-menu attribute
-     */
-    ViewController.prototype.onListItemMenuSelected = function (listitem, listview) {
-        console.log("ViewController.onListItemMenuSelected(): " + listitem + "." + listitem.getAttribute("data-mwf-id") + " from " + listview);
-        var listitemMenuId = listview.getAttribute("data-mwf-listitem-menu");
-        if (!listitemMenuId) {
-            console.log("onListItemMenuSelected(): no listItemMenuId is specified. If listitem menu selection shall be handled, this function needs to be overridden");
-        }
-        else {
-            var menuElement = null;
-            // check whether the menu is a template, in which case it will be cloned
-            // TODO: apply this logics also to "normal" dialogs!
-            if (applicationResources.hasTemplate(listitemMenuId)) {
-                menuElement = this.getTemplateInstance(listitemMenuId);
-            }
-            else {
-                menuElement = document.getElementById(listitemMenuId);
-            }
-            //mwfUtils.feedbackTouchOnElement(menuElement);
-
-            // TODO: we could also use data binding for the list item menu...
-            if (!menuElement.tagName) {
-                // check whether we have mwf-databind active
-                if (menuElement.root.classList.contains("mwf-databind")) {
-                    // note that item is a dom element and not the item object
-                    var itemObj = this.readFromListview(listitem.getAttribute("data-mwf-id"));
-                    applyDatabinding(menuElement.root, menuElement.body, itemObj);
-                }
-                menuElement = menuElement.root;
-            }
-
-            console.log("using listitemMenu: " + menuElement);
-
-            // we allow subclasses to prepare the menu for the given item - this is done asynchronously in case some background processig needs to be done
-            this.onPrepareListitemMenu(menuElement, listitem, listview, function (preparedMenu) {
-
-                // we set a listener on the menu element that listens to list item selection - TODO: also realise the one-listener solution for the other menus (sidemnu, actionmenu)
-                var listitemMenuItemSelectedListener = function (event) {
-
-                    this.hideDialog();
-
-                    function lookupTarget(node) {
-                        if (node.classList.contains("mwf-listitem-menu")) {
-                            console.log("we already reached the root of the menu. Click does not seem to have selected a menu item...");
-                            return null;
-                        } /* generalise listitem-action */
-                        else if (node.classList.contains("mwf-menu-item") || node.classList.contains("mwf-listitem-action")) {
-                            return node;
-                        } else {
-                            return lookupTarget(node.parentNode);
-                        }
-                    }
-
-                    var targetItem = lookupTarget(event.target);
-                    if (targetItem) {
-                        // we feedback which menu item for which item of which listview has been selected...
-                        this.onListItemMenuItemSelected(targetItem, listitem, listview);
                     }
 
                 }.bind(this);
 
-                console.log("setting menuItemSelectedListener on: " + preparedMenu);
+                // we set it on all listviews
+                var i;
+                for (i = 0; i < listviews.length; i++) {
+                    // we add the listview under its id (not mwf-id!) to the listviews map
+                    this.listviewAdapters[listviews[i].id] = new ListviewAdapter(listviews[i], this, applicationResources);
+                    listviews[i].onclick = listviewSelectionListener;
+                }
 
-                // set the listener on the menu
-                preparedMenu.addEventListener("click", listitemMenuItemSelectedListener);
+                this.listviewsPrepared = true;
 
-                // we will show the menu as a dialog
-                this.showDialog(preparedMenu, function () {
-                    console.log("listitem menu is shown as dialog...");
-                });
-
-            }.bind(this));
-        }
-    };
-
-    /* in the default case we just pass the menu without changes to the dialog - for the user, however, it would be nice for the dialog to give feedback about the id of the selected item. In this case, subtypes must override this function */
-    ViewController.prototype.onPrepareListitemMenu = function (menu, item, list, callback) {
-        callback(menu);
-    };
-
-    /*
-     * allows subtypes to react to item selection: we may react to the selection of the view element, but provide a default that does some standard handling
-     */
-    ViewController.prototype.onListItemElementSelected = function (listitemEl, listview) {
-        console.log("ViewController.onListItemElementSelected(): " + listitemEl + " from " + listview);
-        var itemId = listitemEl.getAttribute("data-mwf-id");
-        mwfUtils.removeTouch(listitemEl);
-        console.log("ViewController.onListItemElementSelected(): itemId is: " + itemId);
-
-        var itemObj = this.readFromListview(itemId,listview.id);
-        if (!itemObj) {
-            console.error("ViewController.onListItemElementSelected(): item with selected id " + itemId + " not found in list!");
-        }
-        else {
-            // this handling could be generalised!
-            var targetview = listitemEl.getAttribute("data-mwf-targetview");
-            var targetaction = listitemEl.getAttribute("data-mwf-targetaction");
-            if (targetaction) {
-                console.log("ViewController.onListItemElementSelected(): will call targetaction on view controller: " + targetaction);
-                // we invoke the function dynamically
-                (this[targetaction]).call(this,itemObj);
-            }
-            else if (targetview) {
-                console.log("ViewController.onListItemElementSelected(): will open targetview on view controller: " + targetview);
-                // we pass the item as argument using the key "item"
-                this.nextView(targetview, {item: itemObj});
-            }
-            //
-            else {
-                console.log("ViewController.onListItemElementSelected(): will call onListItemSelected()");
-                this.onListItemSelected(itemObj, listview.id, listitemEl);
             }
         }
 
-    };
-
-    ViewController.prototype.onListItemSelected = function (listitem, listviewid) {
-        console.info("ViewController.onListItemSelected(): " + listitem + " from " + listviewid + ". Override this function locally in order to implement desired behaviour...");
-    };
-
-    /*
-     * allows subtypes to react to item selection - by default we check whether a targetview or targetaction has been specified
-     * may be partially overridden for specific items and be dealt with as default by supertype call in the particular controller
-     *
-     * menuitem: the selected element from the menu
-     * listitem: the list element for which the menu was created
-     * listview: the listview
-     */
-    ViewController.prototype.onListItemMenuItemSelected = function (menuitem, listitem, listview) {
-        console.log("ViewController.onListItemMenuItemSelected(): " + menuitem + " for " + listitem + " from " + listview);
-
-        var targetview = menuitem.getAttribute("data-mwf-targetview");
-        var targetaction = menuitem.getAttribute("data-mwf-targetaction");
-        var itemid = listitem.getAttribute("data-mwf-id");
-        if (itemid && (targetview || targetaction)) {
-            var itemObj = this.readFromListview(listitem.getAttribute("data-mwf-id"));
-            if (!itemObj) {
-                console.log("ViewController.onListItemMenuItemSelected(): cannot run targetaction or targetview. Item with id does not seem to be contained in list: " + listitem.getAttribute("data-mwf-id"));
+        /*
+         * implements default behaviour for actionmenu. subtypes might override the function to cover behaviour that is not dealt with generically here
+         */
+        onActionmenuItemSelected(item) {
+            if (item.classList.contains("mwf-disabled")) {
+                console.log("ViewController.onActionmenuItemSelected(): action is disabled!");
             }
             else {
-                if (targetaction) {
-                    console.log("ViewController.onListItemMenuItemSelected(): will call targetaction on view controller: " + targetaction);
+                console.log("ViewController.onActionmenuItemSelected(): " + item);
+                // check whether the menu item has a data-mwf-targetview or data-mwf-targetaction attribute
+                if (item.hasAttribute("data-mwf-targetview")) {
+                    var targetview = item.getAttribute("data-mwf-targetview");
+                    console.log("ViewController.onActionmenuItemSelected(): item specifies a targetview: " + targetview);
+                    this.nextView(targetview);
+                }
+                else if (item.hasAttribute("data-mwf-targetaction")) {
+                    var targetaction = item.getAttribute("data-mwf-targetaction");
+                    console.log("ViewController.onActionmenuItemSelected(): item specifies a targetaction: " + targetaction);
                     // we invoke the function dynamically - TODO: need to check how this can be done more elegantly than using eval
-                    var targetactionfunction = "this." + targetaction + "(itemObj)";
-                    // by default, the function will be passed the item
+                    var targetactionfunction = "this." + targetaction + "()";
                     eval(targetactionfunction);
                 }
                 else {
-                    console.log("ViewController.onListItemMenuItemSelected(): will open targetview on view controller: " + targetview);
+                    alert("Cannot handle actionmenu item with mwf-id: " + item.getAttribute("data-mwf-id") + "! Remove the item or override onActionmenuItemSelected locally!");
+                }
+            }
+        };
+
+        /*
+         * allows subtypes to react to itemMenu selection - this is the default implementation that uses the mwf-listitem-menu attribute
+         */
+        onListItemMenuSelected(listitem, listview) {
+            console.log("ViewController.onListItemMenuSelected(): " + listitem + "." + listitem.getAttribute("data-mwf-id") + " from " + listview);
+            var listitemMenuId = listview.getAttribute("data-mwf-listitem-menu");
+            if (!listitemMenuId) {
+                console.log("onListItemMenuSelected(): no listItemMenuId is specified. If listitem menu selection shall be handled, this function needs to be overridden");
+            }
+            else {
+                var menuElement = null;
+                // check whether the menu is a template, in which case it will be cloned
+                // TODO: apply this logics also to "normal" dialogs!
+                if (applicationResources.hasTemplate(listitemMenuId)) {
+                    menuElement = this.getTemplateInstance(listitemMenuId);
+                }
+                else {
+                    menuElement = document.getElementById(listitemMenuId);
+                }
+                //mwfUtils.feedbackTouchOnElement(menuElement);
+
+                // TODO: we could also use data binding for the list item menu...
+                if (!menuElement.tagName) {
+                    // check whether we have mwf-databind active
+                    if (menuElement.root.classList.contains("mwf-databind")) {
+                        // note that item is a dom element and not the item object
+                        var itemObj = this.readFromListview(listitem.getAttribute("data-mwf-id"));
+                        applyDatabinding(menuElement.root, menuElement.body, itemObj);
+                    }
+                    menuElement = menuElement.root;
+                }
+
+                console.log("using listitemMenu: " + menuElement);
+
+                // we allow subclasses to prepare the menu for the given item - this is done asynchronously in case some background processig needs to be done
+                this.onPrepareListitemMenu(menuElement, listitem, listview, function (preparedMenu) {
+
+                    // we set a listener on the menu element that listens to list item selection - TODO: also realise the one-listener solution for the other menus (sidemnu, actionmenu)
+                    var listitemMenuItemSelectedListener = function (event) {
+
+                        this.hideDialog();
+
+                        function lookupTarget(node) {
+                            if (node.classList.contains("mwf-listitem-menu")) {
+                                console.log("we already reached the root of the menu. Click does not seem to have selected a menu item...");
+                                return null;
+                            } /* generalise listitem-action */
+                            else if (node.classList.contains("mwf-menu-item") || node.classList.contains("mwf-listitem-action")) {
+                                return node;
+                            } else {
+                                return lookupTarget(node.parentNode);
+                            }
+                        }
+
+                        var targetItem = lookupTarget(event.target);
+                        if (targetItem) {
+                            // we feedback which menu item for which item of which listview has been selected...
+                            this.onListItemMenuItemSelected(targetItem, listitem, listview);
+                        }
+
+                    }.bind(this);
+
+                    console.log("setting menuItemSelectedListener on: " + preparedMenu);
+
+                    // set the listener on the menu
+                    preparedMenu.addEventListener("click", listitemMenuItemSelectedListener);
+
+                    // we will show the menu as a dialog
+                    this.showDialog(preparedMenu, function () {
+                        console.log("listitem menu is shown as dialog...");
+                    });
+
+                }.bind(this));
+            }
+        }
+
+        /* in the default case we just pass the menu without changes to the dialog - for the user, however, it would be nice for the dialog to give feedback about the id of the selected item. In this case, subtypes must override this function */
+        onPrepareListitemMenu(menu, item, list, callback) {
+            callback(menu);
+        }
+
+        /*
+         * allows subtypes to react to item selection: we may react to the selection of the view element, but provide a default that does some standard handling
+         */
+        onListItemElementSelected(listitemEl, listview) {
+            console.log("ViewController.onListItemElementSelected(): " + listitemEl + " from " + listview);
+            var itemId = listitemEl.getAttribute("data-mwf-id");
+            mwfUtils.removeTouch(listitemEl);
+            console.log("ViewController.onListItemElementSelected(): itemId is: " + itemId);
+
+            var itemObj = this.readFromListview(itemId,listview.id);
+            if (!itemObj) {
+                console.error("ViewController.onListItemElementSelected(): item with selected id " + itemId + " not found in list!");
+            }
+            else {
+                // this handling could be generalised!
+                var targetview = listitemEl.getAttribute("data-mwf-targetview");
+                var targetaction = listitemEl.getAttribute("data-mwf-targetaction");
+                if (targetaction) {
+                    console.log("ViewController.onListItemElementSelected(): will call targetaction on view controller: " + targetaction);
+                    // we invoke the function dynamically
+                    (this[targetaction]).call(this,itemObj);
+                }
+                else if (targetview) {
+                    console.log("ViewController.onListItemElementSelected(): will open targetview on view controller: " + targetview);
                     // we pass the item as argument using the key "item"
-                    this.nextView(targetview,{item: itemObj});
+                    this.nextView(targetview, {item: itemObj});
+                }
+                //
+                else {
+                    console.log("ViewController.onListItemElementSelected(): will call onListItemSelected()");
+                    this.onListItemSelected(itemObj, listview.id, listitemEl);
+                }
+            }
+
+        }
+
+        onListItemSelected(listitem, listviewid) {
+            console.info("ViewController.onListItemSelected(): " + listitem + " from " + listviewid + ". Override this function locally in order to implement desired behaviour...");
+        }
+
+        /*
+         * allows subtypes to react to item selection - by default we check whether a targetview or targetaction has been specified
+         * may be partially overridden for specific items and be dealt with as default by supertype call in the particular controller
+         *
+         * menuitem: the selected element from the menu
+         * listitem: the list element for which the menu was created
+         * listview: the listview
+         */
+        onListItemMenuItemSelected(menuitem, listitem, listview) {
+            console.log("ViewController.onListItemMenuItemSelected(): " + menuitem + " for " + listitem + " from " + listview);
+
+            var targetview = menuitem.getAttribute("data-mwf-targetview");
+            var targetaction = menuitem.getAttribute("data-mwf-targetaction");
+            var itemid = listitem.getAttribute("data-mwf-id");
+            if (itemid && (targetview || targetaction)) {
+                var itemObj = this.readFromListview(listitem.getAttribute("data-mwf-id"));
+                if (!itemObj) {
+                    console.log("ViewController.onListItemMenuItemSelected(): cannot run targetaction or targetview. Item with id does not seem to be contained in list: " + listitem.getAttribute("data-mwf-id"));
+                }
+                else {
+                    if (targetaction) {
+                        console.log("ViewController.onListItemMenuItemSelected(): will call targetaction on view controller: " + targetaction);
+                        // we invoke the function dynamically - TODO: need to check how this can be done more elegantly than using eval
+                        var targetactionfunction = "this." + targetaction + "(itemObj)";
+                        // by default, the function will be passed the item
+                        eval(targetactionfunction);
+                    }
+                    else {
+                        console.log("ViewController.onListItemMenuItemSelected(): will open targetview on view controller: " + targetview);
+                        // we pass the item as argument using the key "item"
+                        this.nextView(targetview,{item: itemObj});
+                    }
+                }
+            }
+            else {
+                console.warn("ViewController.onListItemMenuItemSelected(): no itemid or neither targetview nor targetaction specified for listitem. Handling selection needs to be dealt with by the given view controller implementation: " + itemid + "/" + targetview + "/" + targetaction);
+            }
+
+        }
+
+        /*
+         * allows to populate the menu element with dynamic items or to enable/disable items - we also add a callback here
+         */
+        onPrepareActionmenu(menu, callback) {
+            console.log("ViewController.onPrepareActionmenu(): " + menu);
+            callback(menu);
+        }
+
+        /*
+         * need to check whether this makes sense: update the actionmenuItems on updating the dom
+         */
+        updateActionmenuItems(menu) {
+            console.log("ViewController.onPrepareActionmenu(): " + menu);
+            var menuitemElements = menu.getElementsByClassName("mwf-menu-item");
+            this.actionmenuItems = {};
+            var i, currentItem;
+            for (i = 0; i < menuitemElements.length; i++) {
+                // if we have a mwfid
+                currentItem = menuitemElements[i];
+                if (currentItem.hasAttribute("data-mwf-id")) {
+                    console.log("updateActionmenuItems(): found menuitem: " + currentItem.getAttribute("data-mwf-id"));
+                    this.actionmenuItems[currentItem.getAttribute("data-mwf-id")] = currentItem;
+                }
+                else {
+                    // otherwise we create an anonymous item entry using the counter
+                    console.log("updateActionmenuItems(): found anonymous menuitem: " + currentItem);
+                    this.actionmenuItems[i] = currentItem;
+                }
+            }
+            console.log("updateActionmenuItems(): items are: " + mwfUtils.stringify(this.actionmenuItems));
+        }
+
+        // REMOVE: back action
+        // TODO: why remove? This could be handled in a generic way...
+        onback() {
+            console.log("ViewController.onback(): " + this.root.id);
+            this.previousView();
+        }
+
+        onpause(callback) {
+            console.log("ViewController.onpause(): " + this.root.id);
+            this.root.classList.remove("mwf-currentview");
+            this.root.classList.add("mwf-paused");
+
+            this.root.onclick = null;
+
+            this.lcstatus = CONSTANTS.LIFECYCLE.PAUSED;
+
+            if (callback) {
+                callback();
+            }
+        }
+
+// the four lifecycle methods which we realise by setting class attributes
+        oncreate(callback) {
+            console.log("ViewController.oncreate(): " + this.root.id);
+
+            console.log("ViewController.oncreate(): " + this.root);
+
+            // reset pending event listener (there should not be any, though...)
+            this.pendingEventListeners = [];
+
+            // we reset all elements from the root that are marked as dynamic
+            var dynelements = this.root.querySelectorAll(".mwf-dyncontent-root");
+            console.log("clearing " + dynelements.length + " dynamic elements");
+            var i;
+            for (i = 0; i < dynelements.length; i++) {
+                dynelements[i].innerHTML = "";
+            }
+            // we also reset all elements that are marked as dynvalue
+            var dynvalelements = this.root.querySelectorAll(".mwf-dynvalue");
+            console.log("clearing " + dynvalelements.length + " dynamic value elements");
+            for (i = 0; i < dynvalelements.length; i++) {
+                dynvalelements[i].value = "";
+            }
+
+            // initialise generic controls if there exist any...
+            this.prepareActionmenu();
+            if (!this.listviewsPrepared) {
+                this.prepareListviews();
+            }
+            this.prepareForms(this.root);
+
+            // generalise back button handling
+            var backbutton = this.root.querySelector(".mwf-back");
+            console.log("got backbutton on " + this.root.id + ": " + backbutton);
+            if (backbutton) {
+                backbutton.onclick = function () {
+                    this.onback();
+                }.bind(this);
+            }
+
+            // a generic click handler that will close any menus...
+            this.root.onclick = this.hideOverlays.bind(this);
+
+            // we will not display a view oncreate!
+            // instance.root.classList.remove("mwf-idle");
+            // instance.root.classList.remove("mwf-stopped");
+            // instance.root.classList.remove("mwf-paused");
+            // instance.root.classList.add("mwf-currentview");
+
+            console.log("oncreate (done)");
+
+            this.lcstatus = CONSTANTS.LIFECYCLE.CREATED;
+
+            if (callback) {
+                callback();
+            }
+        }
+
+        onresume(callback) {
+            console.log("ViewController.onresume(): " + this.root.id);
+            // on resume the next view will be displayed!
+            this.root.classList.remove("mwf-idle");
+            this.root.classList.remove("mwf-stopped");
+            this.root.classList.remove("mwf-paused");
+            this.root.classList.add("mwf-currentview");
+
+            var hideOverlays = this.hideOverlays.bind(this);
+
+            this.root.onclick = hideOverlays;
+            // also add it to the body
+            document.getElementsByTagName("body")[0].onclick = hideOverlays;
+
+            // we (try to) set autofocus...
+            handleAutofocus(this.root);
+
+            this.lcstatus = CONSTANTS.LIFECYCLE.SHOWING;
+
+            // check whether we have pending event listeners
+            // TODO: here, event listeners could be checked for obsoletion...
+            if (this.pendingEventListeners.length == 0) {
+                console.log("ViewController.onresume(): no pending event listeners exist");
+            }
+            else {
+                console.log("ViewController.onresume(): found pending event listeners: " + this.pendingEventListeners.length);
+                // we process from beginning to end, rather than dealing the listeners array as a stack
+                var currentListener;
+                while (this.pendingEventListeners.length > 0) {
+                    currentListener = this.pendingEventListeners[0];
+                    console.log("ViewController.onresume(): will run pending event listener for: " + currentListener.boundEvent.desc());
+                    this.pendingEventListeners.splice(0,1);
+                    currentListener.call();
+                }
+            }
+
+            if (callback) {
+                callback();
+            }
+        }
+
+        onstop(callback) {
+            console.log("ViewController.onstop(): " + this.root.id);
+            this.root.classList.remove("mwf-currentview");
+            this.root.classList.add("mwf-stopped");
+
+            this.root.onclick = null;
+
+            // we unbind the listeners that have been registered by us
+            eventhandling.removeListenersForOwner(this);
+
+            this.lcstatus = CONSTANTS.LIFECYCLE.STOPPED;
+
+            if (callback) {
+                callback();
+            }
+        }
+
+        nextView(viewid, viewargs, asRootView) {
+            console.log("ViewController.nextView(): " + viewid);
+
+            // if nextView is called in rootView mode, we first clear all controllers and then call nextView...
+            if (asRootView) {
+                applicationState.clearControllers(function () {
+                    console.log("calling nextView() recursively, without rootView option");
+                    this.nextView(viewid, viewargs, false);
+                }.bind(this));
+            }
+            else {
+                var nextView = document.getElementById(viewid);
+                if (!nextView) {
+                    alert("ERROR: Next view " + viewid + " could not be found!");
+                } else {
+                    // detetermine which view controller we shall use
+                    var nextViewControllerClassname = nextView.getAttribute("data-mwf-viewcontroller");
+                    console.log("using next view controller: " + nextViewControllerClassname);
+
+                    // we create a new instance of the view controller
+                    var nextViewControllerFunction = require(nextViewControllerClassname);
+
+                    var nextViewController = new nextViewControllerFunction();
+                    console.log("created next view controller:: " + nextViewController);
+                    nextViewController.setViewAndArgs(nextView, viewargs);
+                    nextViewController.application = applicationObj;
+                    applicationState.pushViewController(nextViewController, asRootView);
                 }
             }
         }
-        else {
-            console.warn("ViewController.onListItemMenuItemSelected(): no itemid or neither targetview nor targetaction specified for listitem. Handling selection needs to be dealt with by the given view controller implementation: " + itemid + "/" + targetview + "/" + targetaction);
+
+        previousView(returnData, returnStatus) {
+            console.log("previousView()");
+            applicationState.popViewController(returnData, returnStatus);
         }
 
-    };
+        getBody() {
+            return this.root.querySelector(".mwf-body");
+        }
 
-    /*
-     * allows to populate the menu element with dynamic items or to enable/disable items - we also add a callback here
-     */
-    ViewController.prototype.onPrepareActionmenu = function (menu, callback) {
-        console.log("ViewController.onPrepareActionmenu(): " + menu);
-        callback(menu);
-    };
+        /* show a dialog - the first argument may either be a string or an object */
+        /* TODO: allow to pass data to which the dialog will be bound */
+        showDialog(dialogid, data, callback) {
+            var isTemplate = false;
 
-    /*
-     * need to check whether this makes sense: update the actionmenuItems on updating the dom
-     */
-    ViewController.prototype.updateActionmenuItems = function (menu) {
-        console.log("ViewController.onPrepareActionmenu(): " + menu);
-        var menuitemElements = menu.getElementsByClassName("mwf-menu-item");
-        this.actionmenuItems = {};
-        var i, currentItem;
-        for (i = 0; i < menuitemElements.length; i++) {
-            // if we have a mwfid
-            currentItem = menuitemElements[i];
-            if (currentItem.hasAttribute("data-mwf-id")) {
-                console.log("updateActionmenuItems(): found menuitem: " + currentItem.getAttribute("data-mwf-id"));
-                this.actionmenuItems[currentItem.getAttribute("data-mwf-id")] = currentItem;
+            console.log("showDialog(): " + dialogid + "@" + this.root.id);
+
+            // hide any other overlay elements
+            hideMenusAndDialogs.call(this);
+
+            // now instantiate the new dialog
+            // TODO: dialogs should be dealt with using the templating mechanism unless the dialog is provided as an argument
+            if (typeof dialogid == 'object') {
+                this.dialog = dialogid;
             }
             else {
-                // otherwise we create an anonymous item entry using the counter
-                console.log("updateActionmenuItems(): found anonymous menuitem: " + currentItem);
-                this.actionmenuItems[i] = currentItem;
+                // either we find the dialog in the document, or the dialog is a template
+                this.dialog = document.getElementById(dialogid);
+                if (!this.dialog) {
+                    console.log("lookup dialog as template: " + dialogid);
+                    this.dialog = this.getTemplateInstance(dialogid);
+                    isTemplate = true;
+                }
             }
-        }
-        console.log("updateActionmenuItems(): items are: " + mwfUtils.stringify(this.actionmenuItems));
-    };
 
-    // REMOVE: back action
-    // TODO: why remove? This could be handled in a generic way...
-    ViewController.prototype.onback = function () {
-        console.log("ViewController.onback(): " + this.root.id);
-        this.previousView();
-    };
-
-    ViewController.prototype.onpause = function (callback) {
-        console.log("ViewController.onpause(): " + this.root.id);
-        this.root.classList.remove("mwf-currentview");
-        this.root.classList.add("mwf-paused");
-
-        this.root.onclick = null;
-
-        this.lcstatus = CONSTANTS.LIFECYCLE.PAUSED;
-
-        if (callback) {
-            callback();
-        }
-    };
-
-// the four lifecycle methods which we realise by setting class attributes
-    ViewController.prototype.oncreate = function (callback) {
-        console.log("ViewController.oncreate(): " + this.root.id);
-
-        console.log("ViewController.oncreate(): " + this.root);
-
-        // reset pending event listener (there should not be any, though...)
-        this.pendingEventListeners = [];
-
-        // we reset all elements from the root that are marked as dynamic
-        var dynelements = this.root.querySelectorAll(".mwf-dyncontent-root");
-        console.log("clearing " + dynelements.length + " dynamic elements");
-        var i;
-        for (i = 0; i < dynelements.length; i++) {
-            dynelements[i].innerHTML = "";
-        }
-        // we also reset all elements that are marked as dynvalue
-        var dynvalelements = this.root.querySelectorAll(".mwf-dynvalue");
-        console.log("clearing " + dynvalelements.length + " dynamic value elements");
-        for (i = 0; i < dynvalelements.length; i++) {
-            dynvalelements[i].value = "";
-        }
-
-        // initialise generic controls if there exist any...
-        prepareActionmenu.call(this);
-        if (!this.listviewsPrepared) {
-            prepareListviews.call(this);
-        }
-        prepareForms.call(this,this.root);
-
-        // generalise back button handling
-        var backbutton = this.root.querySelector(".mwf-back");
-        console.log("got backbutton on " + this.root.id + ": " + backbutton);
-        if (backbutton) {
-            backbutton.onclick = function () {
-                this.onback();
-            }.bind(this);
-        }
-
-        // a generic click handler that will close any menus...
-        this.root.onclick = this.hideOverlays.bind(this);
-
-        // we will not display a view oncreate!
-        // instance.root.classList.remove("mwf-idle");
-        // instance.root.classList.remove("mwf-stopped");
-        // instance.root.classList.remove("mwf-paused");
-        // instance.root.classList.add("mwf-currentview");
-
-        console.log("oncreate (done)");
-
-        this.lcstatus = CONSTANTS.LIFECYCLE.CREATED;
-
-        if (callback) {
-            callback();
-        }
-    };
-
-    ViewController.prototype.onresume = function (callback) {
-        console.log("ViewController.onresume(): " + this.root.id);
-        // on resume the next view will be displayed!
-        this.root.classList.remove("mwf-idle");
-        this.root.classList.remove("mwf-stopped");
-        this.root.classList.remove("mwf-paused");
-        this.root.classList.add("mwf-currentview");
-
-        var hideOverlays = this.hideOverlays.bind(this);
-
-        this.root.onclick = hideOverlays;
-        // also add it to the body
-        document.getElementsByTagName("body")[0].onclick = hideOverlays;
-
-        // we (try to) set autofocus...
-        handleAutofocus(this.root);
-
-        this.lcstatus = CONSTANTS.LIFECYCLE.SHOWING;
-
-        // check whether we have pending event listeners
-        // TODO: here, event listeners could be checked for obsoletion...
-        if (this.pendingEventListeners.length == 0) {
-            console.log("ViewController.onresume(): no pending event listeners exist");
-        }
-        else {
-            console.log("ViewController.onresume(): found pending event listeners: " + this.pendingEventListeners.length);
-            // we process from beginning to end, rather than dealing the listeners array as a stack
-            var currentListener;
-            while (this.pendingEventListeners.length > 0) {
-                currentListener = this.pendingEventListeners[0];
-                console.log("ViewController.onresume(): will run pending event listener for: " + currentListener.boundEvent.desc());
-                this.pendingEventListeners.splice(0,1);
-                currentListener.call();
+            // check whether we have a template
+            if (isTemplate) {
+                this.bindDialog(dialogid, this.dialog, data);
+                this.dialog = this.dialog.root;
             }
-        }
 
-        if (callback) {
-            callback();
-        }
-    };
+            // we reset all forms
+            this.prepareForms(this.dialog);
 
-    ViewController.prototype.onstop = function (callback) {
-        console.log("ViewController.onstop(): " + this.root.id);
-        this.root.classList.remove("mwf-currentview");
-        this.root.classList.add("mwf-stopped");
-
-        this.root.onclick = null;
-
-        // we unbind the listeners that have been registered by us
-        eventhandling.removeListenersForOwner(this);
-
-        this.lcstatus = CONSTANTS.LIFECYCLE.STOPPED;
-
-        if (callback) {
-            callback();
-        }
-    };
-
-    ViewController.prototype.nextView = function (viewid, viewargs, asRootView) {
-        console.log("ViewController.nextView(): " + viewid);
-
-        // if nextView is called in rootView mode, we first clear all controllers and then call nextView...
-        if (asRootView) {
-            applicationState.clearControllers(function () {
-                console.log("calling nextView() recursively, without rootView option");
-                this.nextView(viewid, viewargs, false);
-            }.bind(this));
-        }
-        else {
-            var nextView = document.getElementById(viewid);
-            if (!nextView) {
-                alert("ERROR: Next view " + viewid + " could not be found!");
-            } else {
-                // detetermine which view controller we shall use
-                var nextViewControllerClassname = nextView.getAttribute("data-mwf-viewcontroller");
-                console.log("using next view controller: " + nextViewControllerClassname);
-
-                // we create a new instance of the view controller
-                var nextViewControllerFunction = require(nextViewControllerClassname);
-
-                var nextViewController = new nextViewControllerFunction();
-                console.log("created next view controller:: " + nextViewController);
-                nextViewController.setViewAndArgs(nextView, viewargs);
-                nextViewController.application = applicationObj;
-                applicationState.pushViewController(nextViewController, asRootView);
+            // if the dialog is a child of the view controller, move it next to it as otherwise hiding the dialog controller in the background will not work - it seems that this does not need to be undone
+            if (!this.dialog.parentNode) {
+                this.root.parentNode.appendChild(this.dialog);
             }
-        }
-    };
-
-    ViewController.prototype.previousView = function (returnData, returnStatus) {
-        console.log("previousView()");
-        applicationState.popViewController(returnData, returnStatus);
-    };
-
-    ViewController.prototype.getBody = function () {
-        return this.root.querySelector(".mwf-body");
-    };
-
-    /* show a dialog - the first argument may either be a string or an object */
-    /* TODO: allow to pass data to which the dialog will be bound */
-    ViewController.prototype.showDialog = function (dialogid, data, callback) {
-        var isTemplate = false;
-
-        console.log("showDialog(): " + dialogid + "@" + this.root.id);
-
-        // hide any other overlay elements
-        hideMenusAndDialogs.call(this);
-
-        // now instantiate the new dialog
-        // TODO: dialogs should be dealt with using the templating mechanism unless the dialog is provided as an argument
-        if (typeof dialogid == 'object') {
-            this.dialog = dialogid;
-        }
-        else {
-            // either we find the dialog in the document, or the dialog is a template
-            this.dialog = document.getElementById(dialogid);
-            if (!this.dialog) {
-                console.log("lookup dialog as template: " + dialogid);
-                this.dialog = this.getTemplateInstance(dialogid);
-                isTemplate = true;
+            else if (this.dialog.parentNode == this.root) {
+                this.root.parentNode.appendChild(this.root.removeChild(this.dialog));
             }
+
+            var rootelement = this.root;
+
+            // we need to instantiate the dialog in two steps because if it is included in a view it seems to be overlayn regardless of the z-index
+            this.dialog.classList.add("mwf-hidden");
+            // we cancel click propagation
+            this.dialog.removeEventListener("click", cancelClickPropagation);
+            this.dialog.addEventListener("click", cancelClickPropagation);
+
+            var dia = this.dialog;
+            setTimeout(function () {
+                dia.classList.add("mwf-shown");
+                dia.classList.remove("mwf-hidden");
+                rootelement.classList.add("mwf-dialog-shown");
+                handleAutofocus(dia);
+
+                // check whether the dialog uses a view controller or not
+                var dialogCtrl = applicationState.getEmbeddedController(dialogid);
+                if (dialogCtrl) {
+                    this.handleDialogWithController(dialogCtrl,callback,data);
+                }
+                else if (callback) {
+                    callback();
+                }
+            }.bind(this), 100);
         }
 
-        // check whether we have a template
-        if (isTemplate) {
-            this.bindDialog(dialogid, this.dialog, data);
-            this.dialog = this.dialog.root;
-        }
+        handleDialogWithController(dialogCtrl,callback,data) {
+            console.log("showDialog(): dialog uses view controller. Pass arguments and call onresume.");
+            dialogCtrl.setViewAndArgs(this.dialog,data || {});
 
-        // we reset all forms
-        prepareForms.call(this,this.dialog);
+            // if we have an dialog controller, the hideDialog() and showDialog() functions need to be bound to the currently active view controller, rather than
+            // to the embedded controller. Try it...
+            dialogCtrl.showDialog = this.showDialog.bind(this);
+            dialogCtrl.hideDialog = this.hideDialog.bind(this);
 
-        // if the dialog is a child of the view controller, move it next to it as otherwise hiding the dialog controller in the background will not work - it seems that this does not need to be undone
-        if (!this.dialog.parentNode) {
-            this.root.parentNode.appendChild(this.dialog);
-        }
-        else if (this.dialog.parentNode == this.root) {
-            this.root.parentNode.appendChild(this.root.removeChild(this.dialog));
-        }
+            console.log("lcstatus of dialog controller: " + dialogCtrl.lcstatus);
 
-        var rootelement = this.root;
-
-        // we need to instantiate the dialog in two steps because if it is included in a view it seems to be overlayn regardless of the z-index
-        this.dialog.classList.add("mwf-hidden");
-        // we cancel click propagation
-        this.dialog.removeEventListener("click", cancelClickPropagation);
-        this.dialog.addEventListener("click", cancelClickPropagation);
-
-        var dia = this.dialog;
-        setTimeout(function () {
-            dia.classList.add("mwf-shown");
-            dia.classList.remove("mwf-hidden");
-            rootelement.classList.add("mwf-dialog-shown");
-            handleAutofocus(dia);
-
-            // check whether the dialog uses a view controller or not
-            var dialogCtrl = applicationState.getEmbeddedController(dialogid);
-            if (dialogCtrl) {
-                this.handleDialogWithController(dialogCtrl,callback,data);
+            // check whether the dialog has already been created or if it is only in constructed mode
+            if (dialogCtrl.lcstatus == CONSTANTS.LIFECYCLE.CONSTRUCTED) {
+                console.log("showDialog(): dialog view controller needs to be initialised. Will call oncreate()...");
+                dialogCtrl.oncreate(function(){
+                    dialogCtrl.onresume(function () {
+                        console.log("will cancel click on dialog controller...");
+                        dialogCtrl.root.onclick = cancelClickPropagation;
+                        if (callback) {
+                            callback();
+                        }
+                    });
+                });
             }
-            else if (callback) {
-                callback();
-            }
-        }.bind(this), 100);
-    };
-
-    ViewController.prototype.handleDialogWithController = function(dialogCtrl,callback,data) {
-        console.log("showDialog(): dialog uses view controller. Pass arguments and call onresume.");
-        dialogCtrl.setViewAndArgs(this.dialog,data || {});
-
-        // if we have an dialog controller, the hideDialog() and showDialog() functions need to be bound to the currently active view controller, rather than
-        // to the embedded controller. Try it...
-        dialogCtrl.showDialog = this.showDialog.bind(this);
-        dialogCtrl.hideDialog = this.hideDialog.bind(this);
-
-        console.log("lcstatus of dialog controller: " + dialogCtrl.lcstatus);
-
-        // check whether the dialog has already been created or if it is only in constructed mode
-        if (dialogCtrl.lcstatus == CONSTANTS.LIFECYCLE.CONSTRUCTED) {
-            console.log("showDialog(): dialog view controller needs to be initialised. Will call oncreate()...");
-            dialogCtrl.oncreate(function(){
+            else {
                 dialogCtrl.onresume(function () {
                     console.log("will cancel click on dialog controller...");
                     dialogCtrl.root.onclick = cancelClickPropagation;
@@ -1221,264 +1239,256 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
                         callback();
                     }
                 });
-            });
+            }
         }
-        else {
-            dialogCtrl.onresume(function () {
-                console.log("will cancel click on dialog controller...");
-                dialogCtrl.root.onclick = cancelClickPropagation;
+
+        /* hide a dialog */
+        hideDialog(callback) {
+            console.log("hideDialog(): " + this.dialog + "@" + this.root.id);
+            if (!this.dialog) {
+                console.log("hideDialog(): There is no active dialog! Ignore...");
                 if (callback) {
                     callback();
                 }
-            });
-        }
-    };
+            } else {
+                this.dialog.onclick = null;
+                this.root.classList.remove("mwf-dialog-shown");
+                this.dialog.classList.remove("mwf-shown");
+                console.log("hideDialog(): removal done... now callback: " + callback);
 
-    /* hide a dialog */
-    ViewController.prototype.hideDialog = function (callback) {
-        console.log("hideDialog(): " + this.dialog + "@" + this.root.id);
-        if (!this.dialog) {
-            console.log("hideDialog(): There is no active dialog! Ignore...");
-            if (callback) {
-                callback();
-            }
-        } else {
-            this.dialog.onclick = null;
-            this.root.classList.remove("mwf-dialog-shown");
-            this.dialog.classList.remove("mwf-shown");
-            console.log("hideDialog(): removal done... now callback: " + callback);
-
-            // check whether the dialog uses a view controller or not
-            var dialogCtrl = applicationState.getEmbeddedController(this.dialog.id);
-            if (dialogCtrl) {
-                console.log("hideDialog(): call onpause on dialog controller");
-                // we call on pause
-                this.dialog = null;
-                dialogCtrl.onpause(function(){
+                // check whether the dialog uses a view controller or not
+                var dialogCtrl = applicationState.getEmbeddedController(this.dialog.id);
+                if (dialogCtrl) {
+                    console.log("hideDialog(): call onpause on dialog controller");
+                    // we call on pause
+                    this.dialog = null;
+                    dialogCtrl.onpause(function(){
+                        if (callback) {
+                            callback();
+                        }
+                    });
+                }
+                else {
+                    this.dialog = null;
                     if (callback) {
                         callback();
                     }
-                });
-            }
-            else {
-                this.dialog = null;
-                if (callback) {
-                    callback();
                 }
             }
         }
-    };
 
-    ViewController.prototype.getTemplateInstance = function (templatename) {
-        console.log("getTemplateInstance(): " + templatename);
-        return applicationResources.getTemplateInstance(templatename);
-    };
-
-    /*
-     * bind a view element to some data - elementid might either be an element or a template - this function will be used by subclasses, e.g. for instantiating forms
-     */
-    ViewController.prototype.bindElement = function (elementid, data, attachToRoot) {
-        console.log("bindElement(): " + elementid);
-
-        var boundElement = null;
-
-        function isTemplateWrapper(element) {
-            // either no classes (mere div wrapper), or mwf-template and at most mwf-databind
-            if (((element.tagName.toLowerCase() == "div") || (element.tagName.toLowerCase() == "span")) && (element.classList.length == 0 || (element.classList.contains("mwf-template") && (element.classList.length == 2 ? element.classList.contains("mwf-databind") : element.classList.length == 1)))) {
-                console.log("bindElement(): element is a mere wrapper. Will attach it to root elemenent if provided: " + attachToRoot);
-                return true;
-            }
-            return false;
+        getTemplateInstance(templatename) {
+            console.log("getTemplateInstance(): " + templatename);
+            return applicationResources.getTemplateInstance(templatename);
         }
 
-        if (typeof elementid == 'string') {
-            var element = this.root.querySelector("#" + elementid);
-            if (!element) {
-                console.log("bindElement(): binding to a template");
-                element = this.getTemplateInstance(elementid);
-                console.log("bindElement(): found template: " + element);
+        /*
+         * bind a view element to some data - elementid might either be an element or a template - this function will be used by subclasses, e.g. for instantiating forms
+         */
+        bindElement(elementid, data, attachToRoot) {
+            console.log("bindElement(): " + elementid);
 
-                // check whether we have a mere template, whose content needs to be unwrapped
-                applyDatabinding(attachToRoot && isTemplateWrapper(element.root) ? attachToRoot : element.root, element.body, data);
+            var boundElement = null;
 
-                boundElement = element.root;
-            }
-            else {
-                console.log("bindElement(): binding to a non-template element");
-                applyDatabinding(attachToRoot && isTemplateWrapper(element) ? attachToRoot : element, element.innerHTML, data);
-
-                boundElement = element;
-            }
-        }
-        else {
-            // otherwise we have a element that may be treated itself as a template root
-            console.log("bindElement(): binding a dom element");
-            applyDatabinding(attachToRoot && isTemplateWrapper(elementid) ? attachToRoot : elementid, elementid.innerHTML, data);
-
-            boundElement = elementid;
-        }
-
-        if (boundElement) {
-            if (attachToRoot) {
-                attachToRoot.appendChild(boundElement);
-
-                // TODO: this is a workaround related to the not completely transparent logics of whether the root or the element itself is passed to applyDatabinding
-                if (!attachToRoot.viewProxy) {
-                    attachToRoot.viewProxy = boundElement.viewProxy;
+            function isTemplateWrapper(element) {
+                // either no classes (mere div wrapper), or mwf-template and at most mwf-databind
+                if (((element.tagName.toLowerCase() == "div") || (element.tagName.toLowerCase() == "span")) && (element.classList.length == 0 || (element.classList.contains("mwf-template") && (element.classList.length == 2 ? element.classList.contains("mwf-databind") : element.classList.length == 1)))) {
+                    console.log("bindElement(): element is a mere wrapper. Will attach it to root elemenent if provided: " + attachToRoot);
+                    return true;
                 }
-
-                return attachToRoot;
+                return false;
             }
-            return boundElement;
-        }
 
-        console.log("bindElement(): failed for: " + elementid);
-        return null;
-    };
+            if (typeof elementid == 'string') {
+                var element = this.root.querySelector("#" + elementid);
+                if (!element) {
+                    console.log("bindElement(): binding to a template");
+                    element = this.getTemplateInstance(elementid);
+                    console.log("bindElement(): found template: " + element);
 
-    /*
-     * this is for listview handling - note that the last parameter is always the optional parameter that identifies the listview
-     */
-    ViewController.prototype.initialiseListview = function (items, listviewid) {
-        if (!this.listviewsPrepared) {
-            console.log("initialiseListview(): listviews have not yet been prepared for " + this.root.id + ". Prepare them...");
-            prepareListviews.call(this);
-        }
+                    // check whether we have a mere template, whose content needs to be unwrapped
+                    applyDatabinding(attachToRoot && isTemplateWrapper(element.root) ? attachToRoot : element.root, element.body, data);
 
-        var listview = getListviewAdapter.call(this, listviewid);
-        listview.clear();
-        listview.addAll(items);
-    };
-
-    ViewController.prototype.addToListview = function (item, listviewid) {
-        var listview = getListviewAdapter.call(this, listviewid);
-
-        console.log("addToListview(): " + listview + "/" + item);
-        listview.add(item);
-    };
-
-    ViewController.prototype.updateInListview = function (itemid, item, listviewid) {
-        var listview = getListviewAdapter.call(this, listviewid);
-
-        console.log("updateInListview(): " + listview + "/" + item);
-
-        listview.update(itemid, item);
-    };
-
-    ViewController.prototype.removeFromListview = function (itemid, listviewid) {
-        var listview = getListviewAdapter.call(this, listviewid);
-
-        console.log("removeFromListview(): " + listview + "/" + itemid);
-        listview.remove(itemid);
-    };
-
-    ViewController.prototype.readFromListview = function (itemid, listviewid) {
-        var listview = getListviewAdapter.call(this, listviewid);
-
-        console.log("readFromListview(): " + listview + "/" + itemid);
-        return listview.read(itemid);
-    };
-
-    ViewController.prototype.readAllFromListview = function (itemid, listviewid) {
-        var listview = getListviewAdapter.call(this, listviewid);
-
-        console.log("readAllFromListview(): " + listview);
-        return listview.elements;
-    };
-
-    /*
-     * this is the default binding that uses templating with Ractive
-     */
-    ViewController.prototype.bindListItemView = function (viewid, itemview, item, replacement) {
-        console.log("bindListItemView(): " + viewid);
-        applyDatabinding(replacement ? replacement.root : itemview.root, replacement ? replacement.body : itemview.body, item);
-
-        // we replace the innerhtml content
-        if (replacement) {
-            itemview.innerHTML = replacement.root.innerHTML;
-        }
-
-        // we need to set the touchlisteners here, as content of itemview will have been created new
-        touchEnableOffspring(replacement ? itemview : itemview.root);
-
-        // for subtypes, we return the viewProxy
-        return (replacement ? replacement.root.viewProxy : itemview.root.viewProxy);
-    };
-
-    /*
-     * bind a dialog to data - by default, this will assume that we will be passed the dialog as a template segmented in root and body
-     */
-    ViewController.prototype.bindDialog = function (dialogid, dialog, data) {
-        console.log("bindDialog(): " + dialogid);
-        applyDatabinding(dialog.root, dialog.body, data);
-    };
-
-    /*
-     * we always pass ourselves as the owner
-     */
-    ViewController.prototype.addListener = function(event,listener,runOnPaused) {
-        eventhandling.addListener(event,listener,this,{runOnPaused: runOnPaused});
-    };
-
-    ViewController.prototype.notifyListeners = function(event) {
-        eventhandling.notifyListeners(event);
-    };
-
-    /* we do not want to expose status directly to the subtypes */
-    ViewController.prototype.markAsObsolete = function() {
-        console.log("marking controller as obsolete: " + this.root.id);
-        this.lcstatus = CONSTANTS.LIFECYCLE.OBSOLETE;
-    };
-
-    /*
-     * this handles event listener callbacks
-     */
-    ViewController.prototype.runEventListener = function(listener) {
-        console.log("runEventListener(): for event: " + listener.boundEvent.desc());
-        console.log("runEventListener(): lifecycle status is: " + this.lcstatus);
-
-        switch (this.lcstatus) {
-            case CONSTANTS.LIFECYCLE.SHOWING:
-                console.log("runEventListener(): controller is running in the foreground. Execute listener...");
-                listener.call();
-                break;
-            case CONSTANTS.LIFECYCLE.PAUSED:
-                // check whether the listener has parameters set (which may cause immediate execution)
-                if (listener.eventHandlerParams && listener.eventHandlerParams.runOnPaused) {
-                    console.log("runEventListener(): controller is paused, but listener says runOnPaused. Run it...");
-                    listener.call();
+                    boundElement = element.root;
                 }
                 else {
-                    console.log("runEventListener(): controller is paused. Will add listener to pending listeners...");
-                    this.pendingEventListeners.push(listener);
+                    console.log("bindElement(): binding to a non-template element");
+                    applyDatabinding(attachToRoot && isTemplateWrapper(element) ? attachToRoot : element, element.innerHTML, data);
+
+                    boundElement = element;
                 }
-                break;
-            case CONSTANTS.LIFECYCLE.CREATED:
-                console.log("runEventListener(): controller has not been shown so far. There might be something wrong, but we will add listener to pending listeners...");
-                break;
-            default:
-                console.log("runEventListener(): listener will not be handled at the current lifecycle phase: " + this.lcstatus);
+            }
+            else {
+                // otherwise we have a element that may be treated itself as a template root
+                console.log("bindElement(): binding a dom element");
+                applyDatabinding(attachToRoot && isTemplateWrapper(elementid) ? attachToRoot : elementid, elementid.innerHTML, data);
+
+                boundElement = elementid;
+            }
+
+            if (boundElement) {
+                if (attachToRoot) {
+                    attachToRoot.appendChild(boundElement);
+
+                    // TODO: this is a workaround related to the not completely transparent logics of whether the root or the element itself is passed to applyDatabinding
+                    if (!attachToRoot.viewProxy) {
+                        attachToRoot.viewProxy = boundElement.viewProxy;
+                    }
+
+                    return attachToRoot;
+                }
+                return boundElement;
+            }
+
+            console.log("bindElement(): failed for: " + elementid);
+            return null;
         }
 
-    };
+        /*
+         * this is for listview handling - note that the last parameter is always the optional parameter that identifies the listview
+         */
+        initialiseListview(items, listviewid) {
+            if (!this.listviewsPrepared) {
+                console.log("initialiseListview(): listviews have not yet been prepared for " + this.root.id + ". Prepare them...");
+                this.prepareListviews();
+            }
 
-    // global accessors
+            var listview = getListviewAdapter.call(this, listviewid);
+            listview.clear();
+            listview.addAll(items);
+        }
 
-    ViewController.prototype.setGlobal = function(key,value) {
-        GLOBAL[key] = value;
-    };
+        addToListview(item, listviewid) {
+            var listview = getListviewAdapter.call(this, listviewid);
 
-    ViewController.prototype.hasGlobal = function(key) {
-        return (GLOBAL[key] ? true : false);
-    };
+            console.log("addToListview(): " + listview + "/" + item);
+            listview.add(item);
+        }
 
-    ViewController.prototype.getGlobal = function(key) {
-        return GLOBAL[key];
-    };
+        updateInListview(itemid, item, listviewid) {
+            var listview = getListviewAdapter.call(this, listviewid);
 
-    ViewController.prototype.removeGlobal =function(key) {
-        delete GLOBAL[key];
-    };
+            console.log("updateInListview(): " + listview + "/" + item);
+
+            listview.update(itemid, item);
+        }
+
+        removeFromListview(itemid, listviewid) {
+            var listview = getListviewAdapter.call(this, listviewid);
+
+            console.log("removeFromListview(): " + listview + "/" + itemid);
+            listview.remove(itemid);
+        }
+
+        readFromListview(itemid, listviewid) {
+            var listview = getListviewAdapter.call(this, listviewid);
+
+            console.log("readFromListview(): " + listview + "/" + itemid);
+            return listview.read(itemid);
+        }
+
+        readAllFromListview(itemid, listviewid) {
+            var listview = getListviewAdapter.call(this, listviewid);
+
+            console.log("readAllFromListview(): " + listview);
+            return listview.elements;
+        }
+
+        /*
+         * this is the default binding that uses templating with Ractive
+         */
+        bindListItemView(viewid, itemview, item, replacement) {
+            console.log("bindListItemView(): " + viewid);
+            applyDatabinding(replacement ? replacement.root : itemview.root, replacement ? replacement.body : itemview.body, item);
+
+            // we replace the innerhtml content
+            if (replacement) {
+                itemview.innerHTML = replacement.root.innerHTML;
+            }
+
+            // we need to set the touchlisteners here, as content of itemview will have been created new
+            touchEnableOffspring(replacement ? itemview : itemview.root);
+
+            // for subtypes, we return the viewProxy
+            return (replacement ? replacement.root.viewProxy : itemview.root.viewProxy);
+        }
+
+        /*
+         * bind a dialog to data - by default, this will assume that we will be passed the dialog as a template segmented in root and body
+         */
+        bindDialog(dialogid, dialog, data) {
+            console.log("bindDialog(): " + dialogid);
+            applyDatabinding(dialog.root, dialog.body, data);
+        }
+
+        /*
+         * we always pass ourselves as the owner
+         */
+        addListener(event,listener,runOnPaused) {
+            eventhandling.addListener(event,listener,this,{runOnPaused: runOnPaused});
+        }
+
+        notifyListeners(event) {
+            eventhandling.notifyListeners(event);
+        }
+
+        /* we do not want to expose status directly to the subtypes */
+        markAsObsolete() {
+            console.log("marking controller as obsolete: " + this.root.id);
+            this.lcstatus = CONSTANTS.LIFECYCLE.OBSOLETE;
+        }
+
+        /*
+         * this handles event listener callbacks
+         */
+        runEventListener(listener) {
+            console.log("runEventListener(): for event: " + listener.boundEvent.desc());
+            console.log("runEventListener(): lifecycle status is: " + this.lcstatus);
+
+            switch (this.lcstatus) {
+                case CONSTANTS.LIFECYCLE.SHOWING:
+                    console.log("runEventListener(): controller is running in the foreground. Execute listener...");
+                    listener.call();
+                    break;
+                case CONSTANTS.LIFECYCLE.PAUSED:
+                    // check whether the listener has parameters set (which may cause immediate execution)
+                    if (listener.eventHandlerParams && listener.eventHandlerParams.runOnPaused) {
+                        console.log("runEventListener(): controller is paused, but listener says runOnPaused. Run it...");
+                        listener.call();
+                    }
+                    else {
+                        console.log("runEventListener(): controller is paused. Will add listener to pending listeners...");
+                        this.pendingEventListeners.push(listener);
+                    }
+                    break;
+                case CONSTANTS.LIFECYCLE.CREATED:
+                    console.log("runEventListener(): controller has not been shown so far. There might be something wrong, but we will add listener to pending listeners...");
+                    break;
+                default:
+                    console.log("runEventListener(): listener will not be handled at the current lifecycle phase: " + this.lcstatus);
+            }
+
+        }
+
+        // global accessors
+
+        setGlobal(key,value) {
+            GLOBAL[key] = value;
+        }
+
+        hasGlobal(key) {
+            return (GLOBAL[key] ? true : false);
+        }
+
+        getGlobal(key) {
+            return GLOBAL[key];
+        }
+
+        removeGlobal(key) {
+            delete GLOBAL[key];
+        }
+
+    }
 
     /*
      * extension for embedded view controllers that require additional functions
@@ -1630,22 +1640,25 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
     /*
      * application superclass, holds shared resources, and subclasses may implement shared logics
      */
-    function Application() {
+    class Application {
 
-        this.CRUDOPS = {};
-        this.CRUDOPS.LOCAL = "local";
-        this.CRUDOPS.REMOTE = "remote";
-        this.CRUDOPS.SYNCED = "synced";
+        constructor() {
+            console.log("Application: constructor()");
+            this.CRUDOPS = {};
+            this.CRUDOPS.LOCAL = "local";
+            this.CRUDOPS.REMOTE = "remote";
+            this.CRUDOPS.SYNCED = "synced";
 
-        this.bodyElement = null;
+            this.bodyElement = null;
 
-        this.initialView = null;
+            this.initialView = null;
 
-        this.currentCRUDScope = null;
+            this.currentCRUDScope = null;
 
-        var crudops = {};
+            this.crudops = {};
+        }
 
-        this.oncreate = function(callback) {
+        oncreate(callback) {
             console.log("oncreate()");
 
             var initialViews = this.bodyElement.getElementsByClassName("mwf-view-initial");
@@ -1657,41 +1670,41 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
             }
 
             callback();
-        };
+        }
 
-        this.registerEntity = function(entitytype,entitytypedef,notify) {
+        registerEntity(entitytype,entitytypedef,notify) {
             console.log("registerEntity(): " + entitytype);
 
-            var typecrudops = crudops[entitytype];
+            var typecrudops = this.crudops[entitytype];
             if (!typecrudops) {
                 typecrudops = {};
-                crudops[entitytype] = typecrudops;
+                this.crudops[entitytype] = typecrudops;
             }
             typecrudops.typedef = entitytypedef;
             typecrudops.notify = notify;
-        };
+        }
 
-        this.registerCRUD = function(entitytype,scope,impl) {
+        registerCRUD(entitytype,scope,impl) {
             console.log("registerCRUD(): crudops declaration for " + entitytype + " in scope " + scope);
 
-            var typecrudops = crudops[entitytype];
+            var typecrudops = this.crudops[entitytype];
             if (!typecrudops) {
                 typecrudops = {};
-                crudops[entitytype] = typecrudops;
+                this.crudops[entitytype] = typecrudops;
             }
             typecrudops[scope] = impl;
-        };
+        }
 
-        this.initialiseCRUD = function(scope,em) {
+        initialiseCRUD(scope,em) {
             if (!em) {
                 em = EntityManager;
             }
 
-            console.log("initialiseCRUD(): crudops declaration is: " + mwfUtils.stringify(crudops));
+            console.log("initialiseCRUD(): crudops declaration is: " + mwfUtils.stringify(this.crudops));
 
             var entitytype, crudopsdecl, impl;
-            for (entitytype in crudops) {
-                crudopsdecl = crudops[entitytype];
+            for (entitytype in this.crudops) {
+                crudopsdecl = this.crudops[entitytype];
                 impl = crudopsdecl[scope];
                 if (!impl) {
                     console.error("initialiseCRUD(): could not find impl for entitytype " + entitytype + " in scope " + scope + ".This will not work!");
@@ -1702,9 +1715,9 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
                 }
             }
             this.currentCRUDScope = scope;
-        };
+        }
 
-        this.switchCRUD = function(scope,em) {
+        switchCRUD(scope,em) {
 
             if (!em) {
                 em = EntityManager;
@@ -1715,14 +1728,14 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
                 this.switchCRUDForType(entitytype,scope,em);
             }
             this.currentCRUDScope = scope;
-        };
+        }
 
-        this.switchCRUDForType = function(entitytype,scope,em) {
+        switchCRUDForType(entitytype,scope,em) {
             if (!em) {
                 em = EntityManager;
             }
 
-            var impl = crudops[entitytype][scope];
+            var impl = this.crudops[entitytype][scope];
             if (!impl) {
                 console.warn("switchCRUDForType(): could not find impl for entitytype " + entitytype + " in scope " + scope + ". Will not change existing impl");
             }
@@ -1730,15 +1743,15 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
                 console.log("switchCRUDForType(): switching impl for entitytype " + entitytype + " to scope: " + scope);
                 em.resetCRUD(entitytype,impl);
             }
-        };
+        }
 
+        // allow to broadcast events from the application
+       notifyListeners(event) {
+           eventhandling.notifyListeners(event);
+       }
 
-    }
-
-    // allow to broadcast events from the application
-    Application.prototype.notifyListeners = function(event) {
-        eventhandling.notifyListeners(event);
     };
+
 
     // this is the initial method that will be called when the document and all scripts have been loaded
     function onloadApplication() {

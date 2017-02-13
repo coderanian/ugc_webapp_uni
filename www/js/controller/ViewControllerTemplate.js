@@ -6,6 +6,8 @@ define(["mwf", "entities"], function (mwf, entities) {
     class ViewControllerTemplate extends mwf.ViewController {
 
         constructor() {
+            super();
+
             console.log("ViewControllerTemplate()");
         }
 

@@ -6,6 +6,8 @@ define(["mwf", "entities"], function (mwf, entities) {
     class MyInitialViewController extends mwf.ViewController {
 
         constructor() {
+            super();
+
             console.log("MyInitialViewController()");
         }
 

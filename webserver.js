@@ -179,6 +179,7 @@ function handleRequest(req,res,path,tenant) {
 }
 
 function serveUploadedContent(req,res,path,tenant) {
+    console.log((tenant ? tenant.name : "") + ".onHttpRequest(): serve uploaded content: " + path);
     doServeStaticResource(req,res,path,tenant);
 }
 

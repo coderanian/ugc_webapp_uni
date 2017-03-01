@@ -34,10 +34,10 @@ var httpsEnabled = false;
 var localPassphrase = null;
 
 // multitenant settings
-var multitenantsEnabled = false;
+var multitenantsEnabled = true;
 
 if (multitenantsEnabled) {
-    console.log("\nSERVER RUNNING IN MULTITENANTS MODE\n");
+    console.log("\nSERVER RUNNING IN MULTITENANTS MODE -- PLACE TENANTS' APPLICATIONS IN www/<tenant-id> DIRECTORIES AND EDIT njsimpl/tenants.json\n");
 }
 
 /****************************************************************************

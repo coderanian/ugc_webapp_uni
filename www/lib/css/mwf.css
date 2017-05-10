@@ -84,7 +84,7 @@ header h2 {
     color: black;
 }
 
-.mwf-body {
+.mwf-body, main {
     background-color: rgb(45,45,45);
     height: calc(100% - (40px + 40px));
     height: -webkit-calc(100% - (40px + 40px));

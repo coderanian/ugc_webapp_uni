@@ -1757,7 +1757,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
         // the array returned by querySelectorAll will keep the elements regardless of whether they are removed from the body or not
         var stylingElements = document.querySelectorAll(".mwf-styling");
         if (stylingElements.length > 0) {
-            console.info("application is running in styling mode. Remove all elements from body apart from the ones marked as mwf-styling");
+            console.info("application is running in styling mode. All elements from body will be removed apart from the ones marked as mwf-styling");
             var body = document.getElementsByTagName("body")[0];
             while (body.firstChild) {
                 body.removeChild(body.firstChild);

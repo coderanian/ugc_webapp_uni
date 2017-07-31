@@ -1060,6 +1060,31 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
 
             this.lcstatus = CONSTANTS.LIFECYCLE.SHOWING;
 
+            console.log("ViewController.onresume(): start handling material elements...");
+
+            // check whether we have mwf-material fieldset elements which need to be supported by setting oninput event handlers
+            this.root.querySelectorAll("fieldset.mwf-material").forEach((fs) => {
+                console.log("ViewController.onresume(): handline material element: " + fs);
+                // we directly set the listener rather than using addEventListener()
+                fs.oninput = () => {
+                    // we need to see whether we have a "pseudo element" - this allows to create a layout with a filled-like label, but without any dynamic behaviour
+                    if (!fs.classList.contains("mwf-filled-pseudo")) {
+                        // lookup the input element inside of the fieldset
+                        var inputel = fs.querySelector("input, textarea");
+                        if (inputel) {
+                            if (inputel.value && inputel.value.length > 0) {
+                                if (!fs.classList.contains("mwf-filled")) {
+                                    fs.classList.add("mwf-filled");
+                                }
+                            }
+                            else {
+                                fs.classList.remove("mwf-filled");
+                            }
+                        }
+                    }
+                }
+            });
+
             // check whether we have pending event listeners
             // TODO: here, event listeners could be checked for obsoletion...
             if (this.pendingEventListeners.length == 0) {

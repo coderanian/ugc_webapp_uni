@@ -58,7 +58,7 @@ header {
     height: 40px;
 }
 
-header h2 {
+header h2, header h1 {
     display: inline-block;
     margin: 0px;
     font-size: 16pt;
@@ -719,7 +719,7 @@ body.mwf-loading-app {
 
 /* enforce text ellipsis in headings */
 
-.mwf-view h2.mwf-dyncontent, .mwf-dialog h2.mwf-dyncontent {
+.mwf-view h2.mwf-dyncontent, .mwf-view h1.mwf-dyncontent, .mwf-dialog h2.mwf-dyncontent {
     display: inline-block;
     max-width: 80%;
     white-space: nowrap;
@@ -727,7 +727,7 @@ body.mwf-loading-app {
     text-overflow: ellipsis;
 }
 
-.mwf-view header h2.mwf-dyncontent  {
+.mwf-view header h2.mwf-dyncontent, .mwf-view header h1.mwf-dyncontent {
     max-width: 50%;
 }
 

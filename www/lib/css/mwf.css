@@ -627,7 +627,6 @@ li input {
     background-color: rgb(70,70,70);
     width: 0px;
     transition: width 0.1s;
-    text-wrap: none;
 }
 
 .mwf-actionmenu li.mwf-li-singletitle {
@@ -680,7 +679,6 @@ li input {
     padding: 0px;
     background-color: rgb(70,70,70);
     opacity: 1.0;
-    text-wrap: none;
 }
 
 .mwf-dialog.mwf-listitem-menu h2 {

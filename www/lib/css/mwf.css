@@ -71,20 +71,21 @@ header h2 {
 }
 
 /* by default, dialog-body is dealt with like the body of a normal view */
-.mwf-dialog-body {
+.mwf-dialog main, .mwf-dialog-body {
     height: 100%;
     font-size: 16pt;
     opacity: 1.0
 }
 
 /* this is for dialogs that display some message */
-.mwf-dialog-body > p {
+.mwf-dialog main > p, .mwf-dialog-body > p {
     margin-left: 10px;
     margin-right: 10px;
     color: black;
 }
 
-.mwf-body, main {
+/* this needs to be restricted to 'normal' views, not dialogs */
+.mwf-body, .mwf-view main {
     background-color: rgb(45,45,45);
     height: calc(100% - (40px + 40px));
     height: -webkit-calc(100% - (40px + 40px));

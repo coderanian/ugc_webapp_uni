@@ -751,11 +751,44 @@ fieldset.mwf-material legend {
     transition: font-size 0.5s, color 0.5s, bottom 0.5s;
 }
 
-fieldset.mwf-material.mwf-filled legend, fieldset.mwf-material.mwf-filled-pseudo legend {
+fieldset.mwf-material.mwf-material-filled legend {
     bottom: 25px;
     font-size: 10pt;
     color: limegreen;
 }
+
+/* the following rules handle the case that the browser marks elements as invalid even before any submit event has occurred */
+
+/* fieldset and legend valid */
+fieldset.mwf-material.mwf-material-filled.mwf-material-valid:invalid legend, fieldset.mwf-material.mwf-material-filled.mwf-material-valid legend {
+    color: limegreen;
+    opacity: 0.5;
+}
+
+fieldset.mwf-material.mwf-material-filled.mwf-material-valid:invalid legend .mwf-material-feedback, fieldset.mwf-material.mwf-material-filled.mwf-material-valid legend .mwf-material-feedback, fieldset.mwf-material legend .mwf-material-feedback {
+    opacity: 0.0;
+}
+
+fieldset.mwf-material legend .mwf-material-feedback:before {
+    content: ":";
+    padding-right: 2px;
+}
+
+
+/* fieldset and legend invalid */
+
+fieldset.mwf-material.mwf-material-filled:invalid legend {
+    color: red;
+    opacity: 1.0;
+    transition: opacity 0.5s;
+}
+
+fieldset.mwf-material.mwf-material-filled:invalid legend .mwf-material-feedback {
+    opacity: 1.0;
+    color: red;
+}
+
+/* input in fieldset */
 
 fieldset.mwf-material input, fieldset.mwf-material textarea {
     position: absolute;
@@ -770,5 +803,21 @@ fieldset.mwf-material input, fieldset.mwf-material textarea {
 fieldset.mwf-material textarea {
     top: 5px;
     height: 100px
+}
+
+
+/* skip outlines - this seems to be ignored by FF */
+fieldset.mwf-material input:focus, fieldset.mwf-material input:invalid, fieldset.mwf-material input:invalid:focus, fieldset.mwf-material textarea:focus {
+    outline: none;
+}
+
+/* input validity */
+
+fieldset.mwf-material input:invalid {
+    border-bottom-color: red;
+}
+
+fieldset.mwf-material input.mwf-material-valid:invalid {
+    border-bottom-color: limegreen;
 }
 

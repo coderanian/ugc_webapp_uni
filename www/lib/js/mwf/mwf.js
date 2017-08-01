@@ -1060,30 +1060,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
 
             this.lcstatus = CONSTANTS.LIFECYCLE.SHOWING;
 
-            console.log("ViewController.onresume(): start handling material elements...");
-
-            // check whether we have mwf-material fieldset elements which need to be supported by setting oninput event handlers
-            this.root.querySelectorAll("fieldset.mwf-material").forEach((fs) => {
-                console.log("ViewController.onresume(): handline material element: " + fs);
-                // we directly set the listener rather than using addEventListener()
-                fs.oninput = () => {
-                    // we need to see whether we have a "pseudo element" - this allows to create a layout with a filled-like label, but without any dynamic behaviour
-                    if (!fs.classList.contains("mwf-filled-pseudo")) {
-                        // lookup the input element inside of the fieldset
-                        var inputel = fs.querySelector("input, textarea");
-                        if (inputel) {
-                            if (inputel.value && inputel.value.length > 0) {
-                                if (!fs.classList.contains("mwf-filled")) {
-                                    fs.classList.add("mwf-filled");
-                                }
-                            }
-                            else {
-                                fs.classList.remove("mwf-filled");
-                            }
-                        }
-                    }
-                }
-            });
+            this.processMaterialElements();
 
             // check whether we have pending event listeners
             // TODO: here, event listeners could be checked for obsoletion...
@@ -1105,6 +1082,98 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
             if (callback) {
                 callback();
             }
+        }
+
+        /* this is for processing experimental functionality for material elements */
+        // TODO: handle fieldset elements with multiple input children
+        processMaterialElements() {
+            if (this.root.getElementsByClassName("mwf-material").length > 0) {
+                console.log("processMaterialElements(): view uses material elements...");
+
+                // check whether we have mwf-material fieldset elements which need to be supported by setting oninput event handlers
+                this.root.querySelectorAll("fieldset.mwf-material").forEach((fs) => {
+                    console.log("processMaterialElements(): postprocessing material element: " + fs);
+                    // we directly set the listener rather than using addEventListener()
+                    var inputel = fs.querySelector("input, textarea");
+                    if (inputel) {
+                        fs.oninput = () => {
+                            // always add mwf-valid oninput
+                            fs.classList.add("mwf-material-valid");
+                            if (inputel.value && inputel.value.length > 0) {
+                                fs.classList.add("mwf-material-filled");
+                            }
+                            else {
+                                fs.classList.remove("mwf-material-filled");
+                            }
+                        }
+                        // if the input is not empty, we need to set the field to filled
+                        if (inputel.value && inputel.value.length > 0) {
+                            fs.classList.add("mwf-material-filled");
+                        }
+                    }
+                });
+
+                // override default handling of validity by the browser...
+                this.root.querySelectorAll("fieldset.mwf-material input").forEach(el => {
+                    el.classList.add("mwf-material-valid");
+                    var fs = retrieveAncestor(el, "FIELDSET");
+                    fs.classList.add("mwf-material-valid");
+                    el.oninvalid = (event) => {
+                        console.log("input.oninvalid(): ", el, event, el.validity);
+                        event.preventDefault();
+                        el.classList.remove("mwf-material-valid");
+                        fs.classList.remove("mwf-material-valid");
+                        // we need to add mwf-material-filled to the fs
+                        fs.classList.add("mwf-material-filled");
+                        // we will add a span to the legend
+                        this.addMaterialFeedbackSpanToLegend(fs, el);
+                    }
+                    el.oninput = () => {
+                        el.classList.add("mwf-material-valid");
+                        el.classList.add("mwf-material-valid");
+                    }
+                });
+            }
+            else {
+                console.log("processMaterialElements(): view does not seem to use material elements.");
+            }
+        }
+
+        addMaterialFeedbackSpanToLegend(fs, input) {
+            // get the legend
+            var legends = fs.getElementsByTagName("legend");
+            if (legends.length != 1) {
+                console.log("addMaterialFeedbackSpanToLegend(): no or multiple legends exist. Ignore...");
+                return;
+            }
+            var span = legends[0].getElementsByClassName("mwf-material-feedback");
+            if (span.length == 0) {
+                span = document.createElement("span");
+                span.classList.add("mwf-material-feedback");
+                legends[0].appendChild(span);
+            }
+            else {
+                span = span[0];
+                span.innerHTML = "";
+            }
+
+            // cover a range of validity issues
+            var valstate = input.validity;
+            var valtxt = "";
+            if (valstate.valueMissing) {
+                valtxt = "Eingabe erforderlich";
+            }
+            else if (valstate.typeMismatch || valstate.patternMismatch) {
+                valtxt = "Eingabe ungültig";
+            }
+            else if (valstate.customError) {
+                valtxt = input.validationMessage;
+            }
+            else {
+                valtxt = "Fehler";
+            }
+
+            span.appendChild(document.createTextNode(valtxt));
         }
 
         onstop(callback) {

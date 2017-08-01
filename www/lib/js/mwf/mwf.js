@@ -1990,6 +1990,18 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
 
     }
 
+    function retrieveAncestor(el,tagName) {
+        if (!el.parentNode) {
+            return null;
+        }
+        else if (el.parentNode.tagName == tagName) {
+            return el.parentNode;
+        }
+        else {
+            return retrieveAncestor(el.parentNode,tagName);
+        }
+    }
+
     return {
         Application: Application,
         ApplicationState: ApplicationState,

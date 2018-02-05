@@ -190,13 +190,37 @@ header button, footer button, header input[type=submit], footer[type=submit] {
     height: 100%;
 }
 
+/* these are new alignment rules using flexbox rather than float - note that if a row contains both left-aligned and right-aligned elements, then the last left-aligned element must be declared as mwf-right-fill. For h1 in headers, we set this property by default */
+/* add mwf-alignbox for setting alignment environments manually */
+
+header, footer, li, .mwf-alignbox {
+    display: flex;
+    /*justify-content: space-between;*/
+}
+
+header h1 {
+    margin-right: auto;
+}
+
 .mwf-left-align {
-    float: left;
+    /*float: left;*/
+    justify-content: flex-start;
 }
 
 .mwf-right-align {
-    float: right;
+    /*float: right;*/
+    justify-content: flex-end;
 }
+
+.mwf-right-align:first-child {
+    margin-left: auto;
+}
+
+.mwf-right-fill {
+    margin-right: auto;
+}
+
+/* end of flex box based alignment */
 
 .mwf-bottom-align {
     position: absolute;
@@ -507,7 +531,11 @@ li.mwf-li-singletitle .mwf-imgbutton, li.mwf-li-title-subtitle .mwf-imgbutton, l
     display: inline-block;
     font-size: 16pt;
     font-weight: normal;
-    margin: 0px;
+    /*the left and right margins may conflict with flexbox alignment */
+    /*margin-left: 0px;*/
+    /*margin-right: 0px;*/
+    margin-top: 0px;
+    margin-bottom: 0px;
     max-width: calc(100% - 100px);
     max-width: -webkit-calc(100% - 100px);
     overflow: hidden;

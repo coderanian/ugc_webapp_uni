@@ -220,6 +220,10 @@ header h1 {
     margin-right: auto;
 }
 
+.mwf-left-fill {
+    margin-left: auto;
+}
+
 /* end of flex box based alignment */
 
 .mwf-bottom-align {

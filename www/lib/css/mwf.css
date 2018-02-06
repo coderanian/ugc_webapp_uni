@@ -226,6 +226,21 @@ header h1 {
 
 /* end of flex box based alignment */
 
+/* these classes allow to realise alignment with floating */
+.mwf-alignbox-inline {
+    display: inline-flex;
+}
+
+.mwf-left-align-float {
+    float: left;
+}
+
+.mwf-right-align-float {
+    float: right;
+}
+
+/* end of float based alignment */
+
 .mwf-bottom-align {
     position: absolute;
     bottom: 0;
@@ -360,6 +375,7 @@ header h1 {
 
 .mwf-buttonbar {
     width: 100%;
+    display: inline-flex;
 }
 
 .mwf-buttonbar:first-of-type {

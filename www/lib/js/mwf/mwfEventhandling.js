@@ -53,7 +53,7 @@ define(function () {
                     var etypes = event.type.split("|");
                     var i;
                     for (i = 0; i < etypes.length; i++) {
-                        this.addEventListener(new CustomEvent(event.group, etypes[i], event.target), callback);
+                        this.addListener(new CustomEvent(event.group, etypes[i], event.target), callback);
                     }
                 } else {
                     console.log("adding new event listener for event " + event.desc());

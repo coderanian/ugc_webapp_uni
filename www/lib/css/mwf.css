@@ -820,6 +820,11 @@ body.mwf-loading-app {
     max-width: 50%;
 }
 
+.mwf-li-titleblock h2.mwf-dyncontent, .mwf-view .mwf-li-titleblock h3.mwf-dyncontent {
+    max-width: 100%;
+}
+
+
 /* support material-style input labels for fieldset and legend */
 
 fieldset.mwf-material {

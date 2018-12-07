@@ -57,6 +57,12 @@ define(["mwf", "entities"], function (mwf, entities) {
             // TODO: implement action bindings for dialog, accessing dialog.root
         }
 
+        /*
+         * for views that initiate transitions to other views
+         */
+        onReturnFromSubview(subviewid, returnValue, returnStatus, callback) {
+            // TODO: check from which view, and possibly with which status, we are returning, and handle returnValue accordingly
+        }
 
     }
 

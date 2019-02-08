@@ -247,9 +247,14 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
                             // TODO: we need to foresee the possibility that onreturnfromsubview cancels the resumption of the current view
                             // (e.g. when the view shall be skipped (e.g. readview after item deletion)
                             if (currentViewVC.onReturnFromSubview) {
-                                currentViewVC.onReturnFromSubview(vc.root.id, returnData, returnStatus).then(function () {
-                                    currentViewVC.onresume().then(function () {
-                                    });
+                                currentViewVC.onReturnFromSubview(vc.root.id, returnData, returnStatus).then(function (goahead) {
+                                    if (goahead != false) {
+                                        currentViewVC.onresume().then(function () {
+                                        });
+                                    }
+                                    else {
+                                        console.warn("onReturnFromSubview() of " + currentViewVC.root.id + " blocks resuming view by returning false. Supposedly, this is intended in order to skip the view.")
+                                    }
                                 });
                             } else {
                                 currentViewVC.onresume().then(function () {
@@ -1819,9 +1824,9 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
         }
 
         // allow to broadcast events from the application
-       notifyListeners(event) {
-           eventhandling.notifyListeners(event);
-       }
+        notifyListeners(event) {
+            eventhandling.notifyListeners(event);
+        }
 
     };
 

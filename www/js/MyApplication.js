@@ -9,7 +9,7 @@ define(["mwf", "mwfUtils", "EntityManager", "entities", "GenericCRUDImplLocal", 
             super();
         }
 
-        async oncreate(callback) {
+        async oncreate() {
             console.log("MyApplication.oncreate(): calling supertype oncreate");
 
             // first call the supertype method and pass a callback

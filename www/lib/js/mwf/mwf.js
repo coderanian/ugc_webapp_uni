@@ -205,11 +205,11 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
                 // while oncreate is running on the new view controller the current view is still visible. Only once oncreate is finished we will exchange the views
                 activeViewControllers.push(vc);
 
-                vc.oncreate(function () {
+                vc.oncreate().then(function () {
                     // we attach the embedded controllers once creation is done
                     reattachEmbeddedControllers(vc);
-                    currentViewVC.onpause(function () {
-                        vc.onresume(function () {
+                    currentViewVC.onpause().then(function () {
+                        vc.onresume().then(function () {
                         });
                     });
                 });
@@ -218,8 +218,8 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
                 reattachEmbeddedControllers(vc);
 
                 activeViewControllers.push(vc);
-                vc.oncreate(function () {
-                    vc.onresume(function () {
+                vc.oncreate().then(function () {
+                    vc.onresume().then(function () {
                     });
                 });
             }
@@ -229,9 +229,9 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
             var vc = activeViewControllers.pop();
             console.log("popped view controller: " + vc.root.id + ". Will call onpause+onstop");
             // we first pause and then stop
-            vc.onpause(function () {
+            vc.onpause().then(function () {
                 // we invoke the onstop method on the vc
-                vc.onstop(function () {
+                vc.onstop().then(function () {
                     // then we check whether we have a current view controller and invoke onresume(); - unless it is obsolete
                     if (activeViewControllers.length != 0) {
                         var currentViewVC = activeViewControllers[activeViewControllers.length - 1];
@@ -244,13 +244,15 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
                             // here, we reattach the embedded controllers
                             reattachEmbeddedControllers(currentViewVC);
 
+                            // TODO: we need to foresee the possibility that onreturnfromsubview cancels the resumption of the current view
+                            // (e.g. when the view shall be skipped (e.g. readview after item deletion)
                             if (currentViewVC.onReturnFromSubview) {
-                                currentViewVC.onReturnFromSubview(vc.root.id, returnData, returnStatus, function () {
-                                    currentViewVC.onresume(function () {
+                                currentViewVC.onReturnFromSubview(vc.root.id, returnData, returnStatus).then(function () {
+                                    currentViewVC.onresume().then(function () {
                                     });
                                 });
                             } else {
-                                currentViewVC.onresume(function () {
+                                currentViewVC.onresume().then(function () {
                                 });
                             }
                         }
@@ -270,7 +272,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
                 console.log("popped vc: " + vc);
                 if (vc) {
                     console.log("popped view controller: " + vc.root.id + ". Will call onstop");
-                    vc.onstop(function () {
+                    vc.onstop().then(function () {
                         countdown--;
                         if (countdown == 0) {
                             console.log("no active view controllers left. Now call the callback from " + vc.root.id);
@@ -567,7 +569,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
          * this function is not publicly exposed
          * #ES6: make it an instance method /ES6
          */
-        prepareActionmenu() {
+        async prepareActionmenu() {
             console.log("prepareActionmenu()");
             // initialise the actionmenu if one exists
             var actionmenuControl = this.root.getElementsByClassName("mwf-actionmenu-control");
@@ -579,22 +581,22 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
                 /*
                  * control opening and closing the menu
                  */
-                actionmenuControl.onclick = function (event) {
+                actionmenuControl.onclick = (event) => {
                     // we do not propagate it upwards...
                     event.stopPropagation();
                     // if the menu is not expanded prenventionally close a sidemenu if one exists
                     if (!actionmenu.classList.contains("mwf-expanded")) {
                         hideMenusAndDialogs.call(this);
-                        this.onPrepareActionmenu(actionmenu, function (actionmenu) {
+                        this.onPrepareActionmenu(actionmenu).then(actionmenu => {
                             actionmenu.removeEventListener("click", cancelClickPropagation);
                             actionmenu.addEventListener("click", cancelClickPropagation);
                             actionmenu.classList.toggle("mwf-expanded");
-                        }.bind(this));
+                        });
                     }
                     else {
                         actionmenu.classList.remove("mwf-expanded");
                     }
-                }.bind(this);
+                }
 
                 /*
                  * update the local representation of the actionmenuItems and set listeners on the menu items
@@ -773,7 +775,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
         /*
          * allows subtypes to react to itemMenu selection - this is the default implementation that uses the mwf-listitem-menu attribute
          */
-        onListItemMenuSelected(listitem, listview) {
+        async onListItemMenuSelected(listitem, listview) {
             console.log("ViewController.onListItemMenuSelected(): " + listitem + "." + listitem.getAttribute("data-mwf-id") + " from " + listview);
             var listitemMenuId = listview.getAttribute("data-mwf-listitem-menu");
             if (!listitemMenuId) {
@@ -805,50 +807,49 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
                 console.log("using listitemMenu: " + menuElement);
 
                 // we allow subclasses to prepare the menu for the given item - this is done asynchronously in case some background processig needs to be done
-                this.onPrepareListitemMenu(menuElement, listitem, listview, function (preparedMenu) {
+                var preparedMenu = await this.onPrepareListitemMenu(menuElement, listitem, listview);
 
-                    // we set a listener on the menu element that listens to list item selection - TODO: also realise the one-listener solution for the other menus (sidemnu, actionmenu)
-                    var listitemMenuItemSelectedListener = function (event) {
+                // we set a listener on the menu element that listens to list item selection - TODO: also realise the one-listener solution for the other menus (sidemnu, actionmenu)
+                var listitemMenuItemSelectedListener = function (event) {
 
-                        this.hideDialog();
+                    this.hideDialog();
 
-                        function lookupTarget(node) {
-                            if (node.classList.contains("mwf-listitem-menu")) {
-                                console.log("we already reached the root of the menu. Click does not seem to have selected a menu item...");
-                                return null;
-                            } /* generalise listitem-action */
-                            else if (node.classList.contains("mwf-menu-item") || node.classList.contains("mwf-listitem-action")) {
-                                return node;
-                            } else {
-                                return lookupTarget(node.parentNode);
-                            }
+                    function lookupTarget(node) {
+                        if (node.classList.contains("mwf-listitem-menu")) {
+                            console.log("we already reached the root of the menu. Click does not seem to have selected a menu item...");
+                            return null;
+                        } /* generalise listitem-action */
+                        else if (node.classList.contains("mwf-menu-item") || node.classList.contains("mwf-listitem-action")) {
+                            return node;
+                        } else {
+                            return lookupTarget(node.parentNode);
                         }
+                    }
 
-                        var targetItem = lookupTarget(event.target);
-                        if (targetItem) {
-                            // we feedback which menu item for which item of which listview has been selected...
-                            this.onListItemMenuItemSelected(targetItem, listitem, listview);
-                        }
+                    var targetItem = lookupTarget(event.target);
+                    if (targetItem) {
+                        // we feedback which menu item for which item of which listview has been selected...
+                        this.onListItemMenuItemSelected(targetItem, listitem, listview);
+                    }
 
-                    }.bind(this);
+                }.bind(this);
 
-                    console.log("setting menuItemSelectedListener on: " + preparedMenu);
+                console.log("setting menuItemSelectedListener on: " + preparedMenu);
 
-                    // set the listener on the menu
-                    preparedMenu.addEventListener("click", listitemMenuItemSelectedListener);
+                // set the listener on the menu
+                preparedMenu.addEventListener("click", listitemMenuItemSelectedListener);
 
-                    // we will show the menu as a dialog
-                    this.showDialog(preparedMenu, function () {
-                        console.log("listitem menu is shown as dialog...");
-                    });
+                // we will show the menu as a dialog
+                this.showDialog(preparedMenu).then(function () {
+                    console.log("listitem menu is shown as dialog...");
+                });
 
-                }.bind(this));
             }
         }
 
         /* in the default case we just pass the menu without changes to the dialog - for the user, however, it would be nice for the dialog to give feedback about the id of the selected item. In this case, subtypes must override this function */
-        onPrepareListitemMenu(menu, item, list, callback) {
-            callback(menu);
+        async onPrepareListitemMenu(menu, item, list) {
+            return menu;
         }
 
         /*
@@ -934,16 +935,16 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
         /*
          * allows to populate the menu element with dynamic items or to enable/disable items - we also add a callback here
          */
-        onPrepareActionmenu(menu, callback) {
+        async onPrepareActionmenu(menu) {
             console.log("ViewController.onPrepareActionmenu(): " + menu);
-            callback(menu);
+            return menu;
         }
 
         /*
          * need to check whether this makes sense: update the actionmenuItems on updating the dom
          */
         updateActionmenuItems(menu) {
-            console.log("ViewController.onPrepareActionmenu(): " + menu);
+            console.log("ViewController.updateActionmenuItems(): " + menu);
             var menuitemElements = menu.getElementsByClassName("mwf-menu-item");
             this.actionmenuItems = {};
             var i, currentItem;
@@ -970,7 +971,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
             this.previousView();
         }
 
-        onpause(callback) {
+        async onpause() {
             console.log("ViewController.onpause(): " + this.root.id);
             this.root.classList.remove("mwf-currentview");
             this.root.classList.add("mwf-paused");
@@ -978,14 +979,10 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
             this.root.onclick = null;
 
             this.lcstatus = CONSTANTS.LIFECYCLE.PAUSED;
-
-            if (callback) {
-                callback();
-            }
         }
 
-// the four lifecycle methods which we realise by setting class attributes
-        oncreate(callback) {
+        // the four lifecycle methods which we realise by setting class attributes
+        async oncreate() {
             console.log("ViewController.oncreate(): " + this.root.id);
 
             console.log("ViewController.oncreate(): " + this.root);
@@ -1008,7 +1005,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
             }
 
             // initialise generic controls if there exist any...
-            this.prepareActionmenu();
+            await this.prepareActionmenu();
             if (!this.listviewsPrepared) {
                 this.prepareListviews();
             }
@@ -1035,13 +1032,9 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
             console.log("oncreate (done)");
 
             this.lcstatus = CONSTANTS.LIFECYCLE.CREATED;
-
-            if (callback) {
-                callback();
-            }
         }
 
-        onresume(callback) {
+        async onresume() {
             console.log("ViewController.onresume(): " + this.root.id);
             // on resume the next view will be displayed!
             this.root.classList.remove("mwf-idle");
@@ -1077,10 +1070,6 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
                     this.pendingEventListeners.splice(0,1);
                     currentListener.call();
                 }
-            }
-
-            if (callback) {
-                callback();
             }
         }
 
@@ -1205,7 +1194,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
             span.appendChild(document.createTextNode(valtxt));
         }
 
-        onstop(callback) {
+        async onstop() {
             console.log("ViewController.onstop(): " + this.root.id);
             this.root.classList.remove("mwf-currentview");
             this.root.classList.add("mwf-stopped");
@@ -1216,10 +1205,6 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
             eventhandling.removeListenersForOwner(this);
 
             this.lcstatus = CONSTANTS.LIFECYCLE.STOPPED;
-
-            if (callback) {
-                callback();
-            }
         }
 
         nextView(viewid, viewargs, asRootView) {
@@ -1264,7 +1249,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
 
         /* show a dialog - the first argument may either be a string or an object */
         /* TODO: allow to pass data to which the dialog will be bound */
-        showDialog(dialogid, data, callback) {
+        async showDialog(dialogid, data) {
             var isTemplate = false;
 
             console.log("showDialog(): " + dialogid + "@" + this.root.id);
@@ -1313,24 +1298,20 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
             this.dialog.addEventListener("click", cancelClickPropagation);
 
             var dia = this.dialog;
-            setTimeout(function () {
-                dia.classList.add("mwf-shown");
-                dia.classList.remove("mwf-hidden");
-                rootelement.classList.add("mwf-dialog-shown");
-                handleAutofocus(dia);
+            await promisifiedSetTimeout(100);
+            dia.classList.add("mwf-shown");
+            dia.classList.remove("mwf-hidden");
+            rootelement.classList.add("mwf-dialog-shown");
+            handleAutofocus(dia);
 
-                // check whether the dialog uses a view controller or not
-                var dialogCtrl = applicationState.getEmbeddedController(dialogid);
-                if (dialogCtrl) {
-                    this.handleDialogWithController(dialogCtrl,callback,data);
-                }
-                else if (callback) {
-                    callback();
-                }
-            }.bind(this), 100);
+            // check whether the dialog uses a view controller or not
+            var dialogCtrl = applicationState.getEmbeddedController(dialogid);
+            if (dialogCtrl) {
+                await this.handleDialogWithController(dialogCtrl,data);
+            }
         }
 
-        handleDialogWithController(dialogCtrl,callback,data) {
+        async handleDialogWithController(dialogCtrl,data) {
             console.log("showDialog(): dialog uses view controller. Pass arguments and call onresume.");
             dialogCtrl.setViewAndArgs(this.dialog,data || {});
 
@@ -1344,40 +1325,28 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
             // check whether the dialog has already been created or if it is only in constructed mode
             if (dialogCtrl.lcstatus == CONSTANTS.LIFECYCLE.CONSTRUCTED) {
                 console.log("showDialog(): dialog view controller needs to be initialised. Will call oncreate()...");
-                dialogCtrl.oncreate(function(){
-                    dialogCtrl.onresume(function () {
-                        console.log("will cancel click on dialog controller...");
-                        dialogCtrl.root.onclick = cancelClickPropagation;
-                        if (callback) {
-                            callback();
-                        }
-                    });
-                });
+                await dialogCtrl.oncreate();
+                await dialogCtrl.onresume();
+                console.log("will cancel click on dialog controller...");
+                dialogCtrl.root.onclick = cancelClickPropagation;
             }
             else {
-                dialogCtrl.onresume(function () {
-                    console.log("will cancel click on dialog controller...");
-                    dialogCtrl.root.onclick = cancelClickPropagation;
-                    if (callback) {
-                        callback();
-                    }
-                });
+                await dialogCtrl.onresume();
+                console.log("will cancel click on dialog controller...");
+                dialogCtrl.root.onclick = cancelClickPropagation;
             }
         }
 
         /* hide a dialog */
-        hideDialog(callback) {
+        async hideDialog() {
             console.log("hideDialog(): " + this.dialog + "@" + this.root.id);
             if (!this.dialog) {
                 console.log("hideDialog(): There is no active dialog! Ignore...");
-                if (callback) {
-                    callback();
-                }
             } else {
                 this.dialog.onclick = null;
                 this.root.classList.remove("mwf-dialog-shown");
                 this.dialog.classList.remove("mwf-shown");
-                console.log("hideDialog(): removal done... now callback: " + callback);
+                console.log("hideDialog(): removal done...");
 
                 // check whether the dialog uses a view controller or not
                 var dialogCtrl = applicationState.getEmbeddedController(this.dialog.id);
@@ -1385,17 +1354,10 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
                     console.log("hideDialog(): call onpause on dialog controller");
                     // we call on pause
                     this.dialog = null;
-                    dialogCtrl.onpause(function(){
-                        if (callback) {
-                            callback();
-                        }
-                    });
+                    await dialogCtrl.onpause();
                 }
                 else {
                     this.dialog = null;
-                    if (callback) {
-                        callback();
-                    }
                 }
             }
         }
@@ -1623,10 +1585,8 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
             this.parent = null;
         }
 
-        oncreate(callback) {
-            super.oncreate(() => {
-                callback();
-            });
+        async oncreate() {
+            super.oncreate();
         }
 
         attachToView(view) {
@@ -1661,39 +1621,35 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
         }
 
 
-        oncreate(callback) {
-            super.oncreate(() => {
+        async oncreate() {
+            await super.oncreate();
 
-                this.showMenu = (event) => {
-                    console.log("showMenu()");
-                    hideMenusAndDialogs.call(this);
-                    this.root.classList.add("mwf-expanded");
-                    this.root.onclick = cancelClickPropagation;
-                    // we must not propagate, otherwise this triggers the hideMenu listener...
-                    event.stopPropagation();
+            this.showMenu = (event) => {
+                console.log("showMenu()");
+                hideMenusAndDialogs.call(this);
+                this.root.classList.add("mwf-expanded");
+                this.root.onclick = cancelClickPropagation;
+                // we must not propagate, otherwise this triggers the hideMenu listener...
+                event.stopPropagation();
+            };
+
+            this.hideMenu = () => {
+                console.log("hideMenu()");
+                this.root.classList.remove("mwf-expanded");
+            };
+
+            // from the root we try to read out the menu items... something gets wrong here...
+            var menuItems = this.root.getElementsByClassName("mwf-menu-item");
+            console.log("found " + menuItems.length + " menu items");
+            var i;
+            for (i = 0; i < menuItems.length; i++) {
+                console.log("setting listener on: " + menuItems[i].getAttribute("data-mwf-id"));
+                menuItems[i].onclick = (event) => {
+                    if (event.currentTarget.classList.contains("mwf-menu-item")) {
+                        this.onMenuItemSelected(event.currentTarget);
+                    }
                 };
-
-                this.hideMenu = () => {
-                    console.log("hideMenu()");
-                    this.root.classList.remove("mwf-expanded");
-                };
-
-                // from the root we try to read out the menu items... something gets wrong here...
-                var menuItems = this.root.getElementsByClassName("mwf-menu-item");
-                console.log("found " + menuItems.length + " menu items");
-                var i;
-                for (i = 0; i < menuItems.length; i++) {
-                    console.log("setting listener on: " + menuItems[i].getAttribute("data-mwf-id"));
-                    menuItems[i].onclick = (event) => {
-                        if (event.currentTarget.classList.contains("mwf-menu-item")) {
-                            this.onMenuItemSelected(event.currentTarget);
-                        }
-                    };
-                }
-
-                callback();
-            });
-
+            }
         };
 
         onMenuItemSelected(item) {
@@ -1777,7 +1733,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
             this.crudops = {};
         }
 
-        oncreate(callback) {
+        async oncreate() {
             console.log("oncreate()");
 
             var initialViews = this.bodyElement.getElementsByClassName("mwf-view-initial");
@@ -1787,8 +1743,6 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
                 this.initialView = initialViews[0];
                 console.log("Application.oncreate(): determined initialView: " + this.initialView.id);
             }
-
-            callback();
         }
 
         registerEntity(entitytype,entitytypedef,notify) {
@@ -1957,7 +1911,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
                 // call oncreate if it specifies mwf-initialise-onload
                 // attach to the initialView will be done inside of the pushViewController function
                 if (embeddedComponents[m].classList.contains("mwf-initialise-onload")) {
-                    currentComponentViewController.oncreate(function () {
+                    currentComponentViewController.oncreate().then(function () {
                         applicationState.addEmbeddedController(currentComponentViewController);
                     });
                 }
@@ -1988,7 +1942,7 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
             applicationObj.bodyElement = bodyEl;
 
             // we run oncreate on the application
-            applicationObj.oncreate(function () {
+            applicationObj.oncreate().then(function () {
 
                 var initialView = applicationObj.initialView;
 
@@ -2029,6 +1983,12 @@ define(["mwfUtils", "eventhandling", "EntityManager"], function (mwfUtils, event
         else {
             return retrieveAncestor(el.parentNode,tagName);
         }
+    }
+
+    function promisifiedSetTimeout(timeout) {
+        return new Promise((resolve,reject) => {
+            setTimeout(resolve,timeout);
+        });
     }
 
     return {

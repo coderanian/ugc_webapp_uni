@@ -6,12 +6,17 @@ define(["indexeddb", "EntityManager", "mwfUtils"], function (indexeddb, EntityMa
 
     console.log("loading module. Using indexeddb: " + indexeddb);
 
-    function initialiseDB(dbname, dbversion, objectstores, callback) {
-        var idbinstance = indexeddb.createInstance(dbname, dbversion, objectstores);
-        console.log("created db instance: " + idbinstance + ". Now initialise it...");
-        idbinstance.initialise(function () {
-            console.log("local db has been initialised: " + indexeddb.getInstance());
-            callback();
+    async function initialiseDB(dbname, dbversion, objectstores, callback) {
+        return new Promise((resolve,reject) => {
+            var idbinstance = indexeddb.createInstance(dbname, dbversion, objectstores);
+            console.log("created db instance: " + idbinstance + ". Now initialise it...");
+            idbinstance.initialise(function () {
+                console.log("local db has been initialised: " + indexeddb.getInstance());
+                if (callback) {
+                    callback();
+                }
+                resolve();
+            });
         });
     }
 

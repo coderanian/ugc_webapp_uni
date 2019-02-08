@@ -14,12 +14,12 @@ define(["mwf", "entities"], function (mwf, entities) {
         /*
          * for any view: initialise the view
          */
-        oncreate(callback) {
+        async oncreate() {
             // TODO: do databinding, set listeners, initialise the view
 
 
             // call the superclass once creation is done
-            super.oncreate(callback);
+            super.oncreate();
         }
 
         /*
@@ -60,7 +60,7 @@ define(["mwf", "entities"], function (mwf, entities) {
         /*
          * for views that initiate transitions to other views
          */
-        onReturnFromSubview(subviewid, returnValue, returnStatus, callback) {
+        async onReturnFromSubview(subviewid, returnValue, returnStatus) {
             // TODO: check from which view, and possibly with which status, we are returning, and handle returnValue accordingly
         }
 

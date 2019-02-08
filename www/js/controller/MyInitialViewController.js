@@ -14,14 +14,14 @@ define(["mwf", "entities"], function (mwf, entities) {
         /*
          * for any view: initialise the view
          */
-        oncreate(callback) {
+        async oncreate() {
             // TODO: do databinding, set listeners, initialise the view
             var helloEl = document.createElement("h1");
             helloEl.textContent = "Hello Mobile World...";
             this.root.appendChild(helloEl);
 
             // call the superclass once creation is done
-            super.oncreate(callback);
+            super.oncreate();
         }
 
         /*

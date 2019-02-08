@@ -1471,17 +1471,22 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
             // console.log("Entity.create(): twostep creation is not necessary for given instance of " + this.getTypename());
 
             // we need to check the inverse actions before running create as managers will be reset afterwards
-            console.log(this.getTypename() + ".create()");
 
-            var inverseManagers = prepareInverseOperations.call(this);
+            // here and in the following methods, we return promises as an alternative to passing a callback function
+            return new Promise((resolve,reject) => {
+                console.log(this.getTypename() + ".create()");
 
-            em.create(this.getTypename(),this,function(){
-                handleInverseOperations.call(this,inverseManagers,function(){
-                    if (callback) {
-                        callback(this);
-                    }
+                var inverseManagers = prepareInverseOperations.call(this);
+
+                em.create(this.getTypename(),this,function(){
+                    handleInverseOperations.call(this,inverseManagers,function(){
+                        if (callback) {
+                            callback(this);
+                        }
+                        resolve(this);
+                    }.bind(this));
                 }.bind(this));
-            }.bind(this));
+            });
 
         }
 
@@ -1491,57 +1496,78 @@ define(["mwfUtils", "eventhandling"], function (mwfUtils, eventhandling) {
         }
 
         update(callback) {
-            console.log(this.getTypename() + ".update(): " + this._id);
+            return new Promise((resolve,reject) => {
+                console.log(this.getTypename() + ".update(): " + this._id);
 
-            var inverseManagers = prepareInverseOperations.call(this);
+                var inverseManagers = prepareInverseOperations.call(this);
 
-            em.update(this.getTypename(),this._id,this,function(){
-                handleInverseOperations.call(this,inverseManagers,function(){
-                    if (callback) {
-                        callback(this);
-                    }
+                em.update(this.getTypename(),this._id,this,function(){
+                    handleInverseOperations.call(this,inverseManagers,function(){
+                        if (callback) {
+                            callback(this);
+                        }
+                        resolve(this);
+                    }.bind(this));
                 }.bind(this));
-            }.bind(this));
-
+            });
         }
 
         refresh(callback) {
-            console.log(this.getTypename() + ".refresh(): " + this._id);
+            return new Promise((resolve,reject) => {
+                console.log(this.getTypename() + ".refresh(): " + this._id);
 
-            em.refresh(this.getTypename(),this._id,function(){
-                if (callback) {
-                    callback(this);
-                }
-            }.bind(this));
-
+                em.refresh(this.getTypename(),this._id,function(){
+                    if (callback) {
+                        callback(this);
+                    }
+                    resolve(this);
+                }.bind(this));
+            });
         }
 
         delete(callback) {
-            console.log(this.getTypename() + ".delete(): " + this._id);
+            return new Promise((resolve,reject) => {
+                console.log(this.getTypename() + ".delete(): " + this._id);
 
-            var inverseManagers = prepareInverseOperations.call(this);
+                var inverseManagers = prepareInverseOperations.call(this);
 
-            em.delete(this.getTypename(),this._id,function(deleted){
-                handleInverseOperations.call(this,inverseManagers,function(){
-                    if (callback) {
-                        callback(deleted);
-                    }
-                }.bind(this),true);
-            }.bind(this));
+                em.delete(this.getTypename(), this._id, function (deleted) {
+                    handleInverseOperations.call(this, inverseManagers, function () {
+                        if (callback) {
+                            callback(deleted);
+                        }
+                        resolve(deleted);
+                    }.bind(this), true);
+                }.bind(this));
+            });
         }
 
         static read(entityid,callback) {
-            // #ES6: we can access the information about the type of object for which read is called using the name property of this, because this will be the constructor function of the respective type!!!
-            console.log(this.name + ".read(): " + entityid);
-            em.read(this.name,entityid,callback);
-            // /ES6
+            return new Promise((resolve,reject) => {
+                // #ES6: we can access the information about the type of object for which read is called using the name property of this, because this will be the constructor function of the respective type!!!
+                console.log(this.name + ".read(): " + entityid);
+                em.read(this.name,entityid,(result) => {
+                    if (callback) {
+                        callback(result);
+                    }
+                    resolve(result);
+                });
+                // /ES6
+            });
         }
 
         static readAll(callback) {
-            // #ES6: access name of constructor function, which is the type (see above)
-            console.log(this.name + ".readAll()");
-            em.readAll(this.name,callback);
-            // /ES6
+            return new Promise((resolve,reject) => {
+                // #ES6: access name of constructor function, which is the type (see above)
+                console.log(this.name + ".readAll()");
+                em.readAll(this.name,(result) => {
+                    if (callback) {
+                        callback(result);
+                    }
+                    resolve(result);
+                });
+                // /ES6
+            });
         }
 
         static getCRUD() {

@@ -8,6 +8,9 @@
 // import the framework
 import * as mwf from "../lib/js/mwf/mwf.js";
 
+// import the generic dialog controller
+import GenericDialogTemplateViewController from "../../lib/js/mwf/controller/mwfGenericDialogTemplateViewController.js";
+
 /* application libraries: the main application class */
 import MyApplication from "./MyApplication.js";
 /* application libraries: model */
@@ -18,6 +21,7 @@ import MyInitialViewController from "./controller/MyInitialViewController.js";
 
 
 export {
+    GenericDialogTemplateViewController,
     MyApplication,
     entities,
     MyInitialViewController

@@ -2,7 +2,6 @@
  * @author Jörn Kreutel
  */
 import * as mwf from "../mwf.js";
-import * as entities from "../crud/mwfEntityManager";
 
 export default function GenericDialogTemplateViewController() {
     console.log("GenericDialogTemplateViewController()");

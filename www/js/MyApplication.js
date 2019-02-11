@@ -1,12 +1,12 @@
 /**
  * Created by master on 17.02.16.
  */
-import * as mwf from "../lib/js/mwf/mwf";
-import * as mwfUtils from "../lib/js/mwf/mwfUtils";
-import * as EntityManager from "../lib/js/mwf/crud/mwfEntityManager";
-import * as entities from "model/MyEntities";
-import * as GenericCRUDImplLocal from "../lib/js/mwf/crud/mwfGenericCRUDImplLocal";
-import * as GenericCRUDImplRemote from "../lib/js/mwf/crud/mwfGenericCRUDImplRemote";
+import * as mwf from "../lib/js/mwf/mwf.js";
+import * as mwfUtils from "../lib/js/mwf/mwfUtils.js";
+import * as EntityManager from "../lib/js/mwf/crud/mwfEntityManager.js";
+import * as entities from "./model/MyEntities.js";
+import * as GenericCRUDImplLocal from "../lib/js/mwf/crud/mwfGenericCRUDImplLocal.js";
+import * as GenericCRUDImplRemote from "../lib/js/mwf/crud/mwfGenericCRUDImplRemote.js";
 
 class MyApplication extends mwf.Application {
 

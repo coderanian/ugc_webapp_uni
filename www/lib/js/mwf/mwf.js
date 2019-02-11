@@ -7,9 +7,10 @@
 // TODO: identify listviews by data-mwf-id rather than by id?
 // TODO: allow to switch off mwf.stringify() for performance optimisation!
 
-import * as mwfUtils from "mwfUtils";
-import * as eventhandling from "mwfEventhandling";
-import * as EntityManager from "crud/mwfEntityManager";
+import * as mwfUtils from "./mwfUtils.js";
+import * as eventhandling from "./mwfEventhandling.js";
+import * as EntityManager from "./crud/mwfEntityManager.js";
+import * as thisapp from "../../../js/Main.js";
 
 console.log("loading module...");
 
@@ -1235,7 +1236,7 @@ class ViewController {
                 console.log("using next view controller: " + nextViewControllerClassname);
 
                 // we create a new instance of the view controller
-                var nextViewControllerFunction = require(nextViewControllerClassname);
+                var nextViewControllerFunction = thisapp[nextViewControllerClassname];//require(nextViewControllerClassname);
 
                 var nextViewController = new nextViewControllerFunction();
                 console.log("created next view controller:: " + nextViewController);
@@ -1904,7 +1905,7 @@ function onloadApplication() {
             // check whether the controller is attaching or not
 
             // load and instantiate the controller
-            currentComponentViewControllerFunction = require(currentComponentViewControllerClassname);
+            currentComponentViewControllerFunction = thisapp[currentComponentViewControllerClassname];//require(currentComponentViewControllerClassname);
             //console.log("currentComponent function: " + currentComponentViewControllerFunction);
 
             currentComponentViewController = new currentComponentViewControllerFunction();
@@ -1939,12 +1940,14 @@ function onloadApplication() {
         if (applicationClassname) {
             console.info("onLoadApplication(): using custom application: " + applicationClassname);
             // the application will be realised as a singleton!
-            applicationObj = require(applicationClassname);
+            applicationObj = thisapp[applicationClassname];//require(applicationClassname);
         }
         else {
             console.warn("onLoadApplication(): no custom application is specified. Use default implementation.");
             applicationObj = new Application();
         }
+
+        console.log("created applicationObj: ", applicationObj);
 
         // set the body element on the application
         applicationObj.bodyElement = bodyEl;
@@ -1958,7 +1961,7 @@ function onloadApplication() {
             var initialViewControllerClassname = initialView.getAttribute("data-mwf-viewcontroller");
             console.log("using initial view controller: " + initialViewControllerClassname);
 
-            var initialViewControllerFunction = require(initialViewControllerClassname);
+            var initialViewControllerFunction = thisapp[initialViewControllerClassname];//require(initialViewControllerClassname);
             var initialViewController = new initialViewControllerFunction();
 
             initialViewController.application = applicationObj;
@@ -1967,6 +1970,7 @@ function onloadApplication() {
 
             // here, loading is finished
             document.querySelector("body").classList.remove("mwf-loading-app");
+            document.querySelector("body").classList.add("mwf-loaded-app");
 
             // we set a listener that reacts to changes of the window location
             window.onbeforeunload = function () {

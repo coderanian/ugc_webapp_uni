@@ -8,8 +8,8 @@
  * TODO: allow for more efficient handling of entity references by allowing crud implementations to implement add/removeReference(fromType,fromId,fromAttr,toType,toId,bidir) and only using the current solution if the function is not implemented (currently: adding/removing references requires that both parts of an association are completely loaded as references are persisted as arrays on the objects)
  */
 /*jslint nomen: true*/
-import * as mwfUtils from "../mwfUtils";
-import * as eventhandling from "../mwfEventhandling";
+import * as mwfUtils from "../mwfUtils.js";
+import * as eventhandling from "../mwfEventhandling.js";
 
 console.log("loading module...");
 

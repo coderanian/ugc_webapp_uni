@@ -5,8 +5,8 @@
  */
 
 
-import * as mwfUtils from "../../lib/js/mwf/mwfUtils";
-import * as EntityManager from "../../lib/js/mwf/crud/mwfEntityManager";
+import * as mwfUtils from "../../lib/js/mwf/mwfUtils.js";
+import * as EntityManager from "../../lib/js/mwf/crud/mwfEntityManager.js";
 
 /*************
  * example entity
@@ -22,8 +22,9 @@ class MyEntity extends EntityManager.Entity {
 
 // TODO-REPEATED: add new entity type declarations here
 
+
 // TODO-REPEATED: do not forget to export all type declarations
-return {
-    MyEntity: MyEntity
+export {
+    MyEntity
 };
 

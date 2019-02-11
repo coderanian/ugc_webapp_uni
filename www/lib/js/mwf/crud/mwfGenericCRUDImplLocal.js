@@ -2,11 +2,11 @@
  * Created by master on 31.01.16.
  */
 
-import * as indexeddb from "mwfIndexeddb";
-import * as EntityManager from "mwfEntityManager";
-import * as mwfUtils from "../mwfUtils";
+import * as indexeddb from "./mwfIndexeddb.js";
+import * as EntityManager from "./mwfEntityManager.js";
+import * as mwfUtils from "../mwfUtils.js";
 
-console.log("loading module. Using indexeddb: " + indexeddb);
+//console.log("loading module. Using indexeddb: " + indexeddb);
 
 async function initialiseDB(dbname, dbversion, objectstores, callback) {
     return new Promise((resolve,reject) => {

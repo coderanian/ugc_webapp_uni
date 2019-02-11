@@ -3,9 +3,9 @@
  *
  * TODO: there is an issue with updating tags!!! Seems associations with taggable items are overriden on update... locally it works, though...
  */
-import * as xhr from "mwfXhr";
-import * as EntityManager from "mwfEntityManager";
-import * as mwfUtils from "../mwfUtils"
+import * as xhr from "./mwfXhr.js";
+import * as EntityManager from "./mwfEntityManager.js";
+import * as mwfUtils from "../mwfUtils.js"
 
 console.log("loading module.");
 

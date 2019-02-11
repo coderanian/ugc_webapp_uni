@@ -1,7 +1,7 @@
 /**
  * Created by master on 11.02.19
  *
- * the purpose of this module is to bundle all dynamic application resources that are
+ * the purpose of this module is to bundle all application resources that are
  * dynamically loaded by the framework, and to initialise the framework
  */
 

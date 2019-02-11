@@ -12,7 +12,7 @@ import * as EntityManager from "../../lib/js/mwf/crud/mwfEntityManager.js";
  * example entity
  *************/
 
-class MyEntity extends EntityManager.Entity {
+export class MyEntity extends EntityManager.Entity {
 
     constructor() {
         super();
@@ -20,11 +20,5 @@ class MyEntity extends EntityManager.Entity {
 
 }
 
-// TODO-REPEATED: add new entity type declarations here
 
-
-// TODO-REPEATED: do not forget to export all type declarations
-export {
-    MyEntity
-};
 

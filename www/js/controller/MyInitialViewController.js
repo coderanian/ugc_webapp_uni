@@ -10,6 +10,9 @@ export default class MyInitialViewController extends mwf.ViewController {
     constructor() {
         super();
 
+        var item = new entities.MyEntity();
+        console.log("created: ", item);
+
         console.log("MyInitialViewController()");
     }
 

@@ -48,7 +48,7 @@ export {
     GenericCRUDImplRemote,
     GenericDialogTemplateViewController,
     /* TODO: export the mapHolder in case it is used by the application */
-    // mapHolder
+    // mapHolder,
     /* application modules */
     MyApplication,
     entities,

@@ -20,7 +20,8 @@ import * as indexeddb from "./mwf/crud/mwfIndexeddb.js";
 import * as xhr from "./mwf/crud/mwfXhr.js";
 /* controller */
 import GenericDialogTemplateViewController from "./mwf/controller/mwfGenericDialogTemplateViewController.js";
-import mapHolder from "./mwf/controller/mwfMapHolderLeaflet.js";
+/* TODO: only include the mapHolder if maps are actually used. Do not forget to export it below */
+//import mapHolder from "./mwf/controller/mwfMapHolderLeaflet.js";
 
 export {
     mwf,
@@ -32,5 +33,6 @@ export {
     indexeddb,
     xhr,
     GenericDialogTemplateViewController,
-    mapHolder
+    /* TODO: export the mapHolder in case it is used by the application */
+    // mapHolder
 }

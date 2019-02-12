@@ -1,8 +1,8 @@
 /**
  * @author Jörn Kreutel
  */
-import * as mwf from "../../lib/js/mwf/mwf.js";
-import * as entities from "../model/myEntities.js";
+import {mwf} from "../Main.js";
+import {entities} from "../Main.js";
 
 export default class ViewControllerTemplate extends mwf.ViewController {
 

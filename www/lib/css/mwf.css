@@ -797,7 +797,12 @@ li input {
 }
 
 body.mwf-loading-app {
-    display: none;
+    opacity: 0.0;
+}
+
+body.mwf-loaded-app {
+    opacity: 1.0;
+    transition: opacity 1s;
 }
 
 .mwf-body p {

@@ -53,7 +53,7 @@ export {
     MyApplication,
     entities,
     MyInitialViewController,
-    // TODO-REPEATED: export any further view controllers here,
+    // TODO-REPEATED: export any further view controllers here
 }
 
 // then start the application

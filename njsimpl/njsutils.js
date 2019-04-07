@@ -16,21 +16,68 @@ var endsWith = function endsWith(string, substring) {
 module.exports = {
 
     // see: https://gist.github.com/savokiss/96de34d4ca2d37cbb8e0799798c4c2d3
-    getIPAddress : function getIPAddress() {
-        var interfaces = require('os').networkInterfaces();
-        for (var devName in interfaces) {
-            var iface = interfaces[devName];
+    // getIPAddress : function getIPAddress() {
+    //     var interfaces = require('os').networkInterfaces();
+    //     for (var devName in interfaces) {
+    //         var iface = interfaces[devName];
+    //
+    //         for (var i = 0; i < iface.length; i++) {
+    //             var alias = iface[i];
+    //             if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal)
+    //                 return alias.address;
+    //         }
+    //     }
+    //
+    //     return '127.0.0.1';
+    // },
 
-            for (var i = 0; i < iface.length; i++) {
-                var alias = iface[i];
-                if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal)
-                    return alias.address;
-            }
+    // more sophisticated solution by Jens Bekersch, see https://github.com/JensBekersch/org.dieschnittstelle.iam.css_jsl_jsr/blob/master/publish/webserver.js
+    getIPAddress: function() {
+
+        var operatingSystem= process.platform;
+        var networkInterfaces= require('os').networkInterfaces();
+        var allowedAdapterNamesRegExp= new RegExp("^(Ethernet|WLAN|WiFi)");
+        var ipAddress= '127.0.0.1';
+
+        switch(operatingSystem) {
+            case 'win32':
+                getWindowsEthernetAdapterName();
+                break;
+            default:
+                getLinuxEthernetAdapter();
+                break;
         }
 
-        return '127.0.0.1';
-    },
+        function getWindowsEthernetAdapterName() {
+            var ethernetAdapterName;
+            for(ethernetAdapterName in networkInterfaces)
+                selectEthernetAdapterByName(ethernetAdapterName);
+        }
 
+        function selectEthernetAdapterByName(ethernetAdapterName) {
+            if(ethernetAdapterName.match(allowedAdapterNamesRegExp))
+                getIPAdressOfEthernetAdapter(networkInterfaces[ethernetAdapterName]);
+        }
+
+        function getLinuxEthernetAdapter() {
+            var ethernetAdapterName;
+            for(ethernetAdapterName in networkInterfaces)
+                getIPAdressOfEthernetAdapter(networkInterfaces[ethernetAdapterName]);
+        }
+
+        function getIPAdressOfEthernetAdapter(selectedNetworkAdapter) {
+            var i;
+            for (i=0; i<selectedNetworkAdapter.length; i++)
+                checkIfAliasIsIPv4NotLocalAndNotInternal(selectedNetworkAdapter[i]);
+        }
+
+        function checkIfAliasIsIPv4NotLocalAndNotInternal(alias) {
+            if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal)
+                ipAddress= alias.address;
+        }
+
+        return ipAddress;
+    },
     clearNode : function clearNode(node) {
         while (node.firstChild) {
             console.log("removing child node: " + node.firstChild);

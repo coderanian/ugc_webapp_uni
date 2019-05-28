@@ -376,7 +376,7 @@ function createInstance(_dbname, _version, _objectstores, _modifiers, _onstorecr
 
 function getInstance() {
     if (!instance) {
-        console.error("instance of indexddb operations is not available!");
+        console.error("instance of indexeddb operations is not available!");
     }
     return instance;
 }

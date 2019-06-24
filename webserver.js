@@ -19,7 +19,7 @@ var server;
 // the HTTPS server
 var httpsServer;
 // the port on which the server will be started
-var port = 8787;
+var port = 8383;
 // the ip address
 var ip = utils.getIPAddress();
 // the segment for identifying the rest api

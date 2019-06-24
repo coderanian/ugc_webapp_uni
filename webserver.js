@@ -19,7 +19,7 @@ var server;
 // the HTTPS server
 var httpsServer;
 // the port on which the server will be started
-var port = 8383;
+var port = 8787;
 // the ip address
 var ip = utils.getIPAddress();
 // the segment for identifying the rest api
@@ -152,7 +152,7 @@ function handleRequest(req,res,path,tenant) {
 
         tenantCRUDImpl.processRequest(req, res, apiref);
     } else {
-        if (path.length > 1 && path.indexOf("%7D%7D") == path.length - 6) {
+        if (path.length > 1 && path.indexOf("%7D%7D") == path.length - 6 || (path.length == 7 && path.includes("/%7B%7B"))) {
             console.warn((tenant ? tenant.name : "") + ".onHttpRequest(): path seems to be a template filling expression. Will not deliver anything.");
             res.writeHead(204);
             res.end();

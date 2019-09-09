@@ -1883,7 +1883,11 @@ function extractTopLevelViews() {
             }
         }
         else {
-            console.warn("extractTopLevelViews(): found element without id: ", e);
+            console.info("extractTopLevelViews(): found element without id: ", e);
+            if (e.classList.contains("mwf-view-initial")) {
+                console.log("extractTopLevelViews(): element is initial view: ", initialView);
+                initialView = e;
+            }
         }
     });
 

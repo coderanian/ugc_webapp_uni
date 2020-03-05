@@ -1,12 +1,5 @@
 :root {
-    /* TODO: modify those entries that shall be adapted */
-    /* note that the two variables that are adapted are only
-    meant to demonstrate themes for the very simple case
-    of the "Hello Mobile World" view of the raw skeleton.
-    For further functionality of the app, e.g. following the
-    tutorial, more changes of colors will be necessary */
-
-    /* general colors */
+    /*!* general colors *!*/
     --var-mwf-primary-text-color: black;
     /*--var-mwf-dialog-text-color: black;*/
     /*--var-mwf-primary-line-color: limegreen;*/
@@ -14,42 +7,43 @@
     /*--var-mwf-error-color: red;*/
     /*--var-mwf-default-spacing: 10px;*/
 
-    /* general font sizes */
+    /*!* general font sizes *!*/
     /*--var-mwf-normal-font-size: 12pt;*/
     /*--var-mwf-larger-font-size: 16pt;*/
     /*--var-mwf-smaller-font-size: 10pt;*/
 
-    /* settings for the header */
+    /*!* settings for the header *!*/
     /*--var-mwf-header-height: 40px;*/
-    /*--var-mwf-header-background-color: rgb(240,240,240);*/
-    /*--var-mwf-header-color: black;*/
-    /*--var-mwf-header-separator-height: 2px;*/
-    /*--var-mwf-header-separator-color: var(--var-mwf-primary-line-color);*/
+    /*--var-mwf-header-background-color: rgb(60,60,60);*/
+    /*--var-mwf-header-color: white;*/
+
+    /*--var-mwf-header-separator-height: 0px;*/
+    /*--var-mwf-header-separator-color: transparent;*/
     /*--var-mwf-header-font-size: 16pt;*/
-
-    /* settings for the footer */
+    /*!* settings for the footer *!*/
     /*--var-mwf-footer-height: 40px;*/
-    /*--var-mwf-footer-background-color: white;*/
-    /*--var-mwf-footer-separator-height: 2px;*/
-    /*--var-mwf-footer-separator-color: var(--var-mwf-primary-line-color);*/
+    /*--var-mwf-footer-background-color: black;*/
 
-    /* main element and body */
+    /*--var-mwf-footer-separator-height: 0px;*/
+    /*--var-mwf-footer-separator-color: transparent;*/
+
+    /*!* main element and body *!*/
     --var-mwf-main-background-color: white;
 
-    /* imgbuttons */
+    /*!* imgbuttons *!*/
     /*--var-mwf-imgbutton-size: 40px;*/
     /*--var-mwf-imgbutton-imgsize: 20px;*/
-    /*--var-mwf-imgbutton-touched-background-color: gray;*/
+    /*--var-mwf-imgbutton-touched-background-color: rgb(240,240,240);;*/
     /*--var-mwf-imgbutton-touched-opacity: 0.5;*/
-    /*--var-mwf-imgbutton-invert: 30%;*/
-    /*--var-mwf-icon-invert: 50%;*/
+    /*--var-mwf-imgbutton-invert: 90%;*/
+    /*--var-mwf-icon-invert: 90%;*/
     /*--var-mwf-fab-color: var(--var-mwf-primary-area-color);*/
     /*--var-mwf-fab-invert: 90%;*/
 
-    /* lists */
+    /*!* lists *!*/
     /*--var-mwf-listitem-height: 50px;*/
     /*--var-mwf-listitem-spacing-horizontal: 5px;*/
-    /*--var-mwf-listitem-spacing-vertical: 10px;*/
+    /*--var-mwf-listitem-spacing-vertical: 5px;*/
     /*--var-mwf-listitem-separator-height: 1px;*/
     /*--var-mwf-listitem-separator-style: solid;*/
     /*--var-mwf-listitem-separator-color: rgb(120, 120, 120);*/
@@ -57,21 +51,21 @@
     /*--var-mwf-listitem-titleblock-h3-font-size: var(--var-mwf-smaller-font-size);*/
     /*--var-mwf-listitem-titleblock-h3-uplift: -10px;*/
 
-    /* settings for dialogs */
-    /*--var-mwf-dialog-background-color: white;*/
-    /*--var-mwf-dialog-border-color: black;*/
+    /*!* settings for dialogs *!*/
+    /*--var-mwf-dialog-background-color: rgb(240, 240, 240);*/
+    /*--var-mwf-dialog-border-color: white;*/
     /*--var-mwf-dialog-button-font-size: 14pt;*/
-    /*--var-mwf-listitem-menu-background-color: white;*/
+    /*--var-mwf-listitem-menu-background-color: rgb(70, 70, 70);*/
     /*--var-mwf-listitem-menu-heading-height: 40px;*/
     /*--var-mwf-listitem-menu-heading-font-size: var(--var-mwf-larger-font-size);*/
-    /*--var-mwf-listitem-menu-border-color: black;*/
+    /*--var-mwf-listitem-menu-border-color: rgb(70, 70, 70);*/
     /*--var-mwf-toast-background-color: gray;*/
     /*--var-mwf-toast-color: white;*/
 
-    /* settings for forms */
+    /*!* settings for forms *!*/
     /*--var-mwf-form-input-color: var(--var-mwf-primary-line-color);*/
     /*--var-mwf-form-input-line-height: 2px;*/
-    /*--var-mwf-form-spacing-horizontal: 5px;*/
+    /*--var-mwf-form-spacing-horizontal: 10px;*/
     /*--var-mwf-form-spacing-vertical: 10px;*/
 
 }

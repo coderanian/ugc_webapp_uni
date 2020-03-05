@@ -3,7 +3,7 @@
  */
 
 // this is for switching between the standard and the new theme mode for displaying the views
-let themed = false;
+let themes = true;
 
 var http = require('http');
 var https = require('https');
@@ -163,7 +163,7 @@ function handleRequest(req,res,path,tenant) {
         else {
             if (path == '/') {
                 // if the root is accessed we serve the main html document
-                path = themed ? "app-with-theme.html" : "app.html";
+                path = themes ? "app-with-theme.html" : "app.html";
             }
             else {
                 // we need to consider that the path may be url encoded, e.g. in case a filename contains blanks

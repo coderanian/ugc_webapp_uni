@@ -1,8 +1,13 @@
 :root {
     /* TODO: modify those entries that shall be adapted */
+    /* note that the two variables that are adapted are only
+    meant to demonstrate themes for the very simple case
+    of the "Hello Mobile World" view of the raw skeleton.
+    For further functionality of the app, e.g. following the
+    tutorial, more changes of colors will be necessary */
 
     /* general colors */
-    /*--var-mwf-primary-text-color: black;*/
+    --var-mwf-primary-text-color: black;
     /*--var-mwf-dialog-text-color: black;*/
     /*--var-mwf-primary-line-color: limegreen;*/
     /*--var-mwf-primary-area-color: limegreen;*/
@@ -29,7 +34,7 @@
     /*--var-mwf-footer-separator-color: var(--var-mwf-primary-line-color);*/
 
     /* main element and body */
-    /*--var-mwf-main-background-color: white;*/
+    --var-mwf-main-background-color: white;
 
     /* imgbuttons */
     /*--var-mwf-imgbutton-size: 40px;*/

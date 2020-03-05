@@ -2,6 +2,9 @@
  * originally taken from http://jmesnil.net/weblog/2010/11/24/html5-web-application-for-iphone-and-ipad-with-node-js/
  */
 
+// this is for switching between the standard and the new theme mode for displaying the views
+let themed = false;
+
 var http = require('http');
 var https = require('https');
 var url = require('url');
@@ -19,7 +22,7 @@ var server;
 // the HTTPS server
 var httpsServer;
 // the port on which the server will be started
-var port = 8383;
+var port = 7383;
 // the ip address
 var ip = utils.getIPAddress();
 // the segment for identifying the rest api
@@ -160,7 +163,7 @@ function handleRequest(req,res,path,tenant) {
         else {
             if (path == '/') {
                 // if the root is accessed we serve the main html document
-                path = "app.html";
+                path = themed ? "app-with-theme.html" : "app.html";
             }
             else {
                 // we need to consider that the path may be url encoded, e.g. in case a filename contains blanks

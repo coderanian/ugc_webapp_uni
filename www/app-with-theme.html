@@ -11,8 +11,12 @@
     <link rel="manifest" href="pwa/webapp-manifest.json"> -->
     <!-- load the styles -->
     <link rel="stylesheet" href="lib/css/normalize.css"/>
-    <link rel="stylesheet" href="lib/css/mwf.css"/>
-    <link rel="stylesheet" href="lib/css/mwfIcons.css"/>
+    <link rel="stylesheet" href="lib/css/theme/mwf-default-theme.css"/>
+    <!-- myapp-theme can provide settings for size and color that override the default settings -->
+    <link rel="stylesheet" href="css/theme/myapp-theme.css"/>
+    <link rel="stylesheet" href="lib/css/theme/mwf-with-theme.css"/>
+    <!-- the icons are used both with and without theme -->
+    <link rel="stylesheet" href="lib/css/mwfIcons.css" />
     <!-- the application specific style -->
     <link rel="stylesheet" href="css/mystyle.css"/>
     <!-- TODO: comment-in if mapviews shall be used. It seems that libs and css need to be accessed online rather than be provided locally, there is also some issue when using leaflet+offline manifest... -->
@@ -25,6 +29,7 @@
     <!-- load the application resources and initialise the mwf framework -->
     <script type="module" src="js/Main.js"></script>
 </head>
+<!-- TODO: change the application name if it is adapted -->
 <!-- TODO: change the application name if it is adapted -->
 <body data-mwf-application="MyApplication" class="mwf-loading-app">
 

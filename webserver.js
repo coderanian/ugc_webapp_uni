@@ -3,7 +3,7 @@
  */
 
 // this is for switching between the standard and the new theme mode for displaying the views
-let themes = true;
+let themes = false;
 
 var http = require('http');
 var https = require('https');

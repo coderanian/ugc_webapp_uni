@@ -210,14 +210,18 @@ function TemplateProxy(ractive) {
 }
 
 function applyDatabinding(root, body, data) {
+    // TODO: there is an issue that for template-wrapping divs, the empty div itself might be attached again to the root
+    console.log("applyDatabinding(): using template body and root children: " + body, root.children.length);
     var ractive = new Ractive({
         el: root,
         template: body,
         data: data
     });
+    console.log("applyDatabinding(): after template application children of root are ", root.children.length, root);
     // we add the ractive object as a handle to the root in order to do updates
     root.viewProxy = new TemplateProxy(ractive);
     touchEnableOffspring(root);
+    console.log("applyDatabinding(): after touch enablement, children of root are ", root.children.length, root);
 }
 
 function ApplicationState() {

@@ -92,6 +92,7 @@ function hideMenusAndDialogs() {
             dialog.classList.remove("mwf-shown");
             dialog.classList.add("mwf-hidden");
             dialog.onclick = null;
+            console.log("REFACVIEWS: adding transitionend for hiding menus and dialogs: ", this.dialog);
             addRemoveOnFadedToElement(dialog);
         }
     }
@@ -106,21 +107,44 @@ function hideMenusAndDialogs() {
     }
 }
 
+// we need the possibility to realise removing from outside, so we need to keep track of a map of listeners
+const removeOnFadedListenerMap = new Map();
+
+function trackRemoveOnFadedListenerForElement(el,listener) {
+    removeOnFadedListenerMap.set(el,listener);
+}
+
+function getRemoveOnFadedListenerForElement(el,listener) {
+    return removeOnFadedListenerMap.get(el);
+}
+
 function addRemoveOnFadedToElement(el) {
     if (el) {
-        console.debug("addRemoveOnFadedToElement(): ", el);
+        console.debug("REFACVIEWS: addRemoveOnFadedToElement(): ", el);
         // we remove the view on transitionend
         const removeOnFaded = () => {
             el.removeEventListener("transitionend",removeOnFaded);
             if (el.parentNode) {
-                console.log("transitionend(): remove element from parent: ",el);
+                console.log("REFACVIEWS: transitionend(): remove element from parent: ",el);
                 el.parentNode.removeChild(el);
             }
             else {
-                console.log("transitionend(): remove element from parent not possible as parent has not been set");
+                console.log("REFACVIEWS: transitionend(): remove element from parent not possible as parent has not been set");
             }
         }
         el.addEventListener("transitionend",removeOnFaded);
+        trackRemoveOnFadedListenerForElement(el,removeOnFaded);
+    }
+}
+
+function removeRemoveOnFadedFromElement(el) {
+    const removeOnFadedListener = getRemoveOnFadedListenerForElement(el);
+    if (removeOnFadedListener) {
+        console.info("REFACVIEWS: removeRemoveOnFadedFromElement(): remove transitionend listener from element without listener having been run (which will be the case if a view is obsolete):", el);
+        el.removeEventListener("transitionend",removeOnFadedListener);
+    }
+    else {
+        console.warn("REFACVIEWS: removeRemoveOnFadedFromElement(): no transitionend listener specified on element. Clarify why function has been called.", el);
     }
 }
 
@@ -256,7 +280,7 @@ function ApplicationState() {
     // remove the active view controller
     this.popViewController = function (returnData, returnStatus) {
         var vc = activeViewControllers.pop();
-        console.log("popped view controller: " + vc.root.id + ". Will call onpause+onstop");
+        console.log("REFACVIEWS: popViewController(): " + vc.root.id + ". Will call onpause+onstop", vc);
         // we first pause and then stop
         vc.onpause().then(function () {
             // we invoke the onstop method on the vc
@@ -278,11 +302,13 @@ function ApplicationState() {
                         if (currentViewVC.onReturnFromSubview) {
                             currentViewVC.onReturnFromSubview(vc.root.id, returnData, returnStatus).then(function (goahead) {
                                 if (goahead != false) {
+                                    console.log("REFACVIEWS: onReturnFromSubview(): continuing regularly " + currentViewVC.root.id);
                                     currentViewVC.onresume().then(function () {
                                     });
                                 }
                                 else {
-                                    console.warn("onReturnFromSubview() of " + currentViewVC.root.id + " blocks resuming view by returning false. Supposedly, this is intended in order to skip the view.")
+                                    console.info("REFACVIEWS: onReturnFromSubview(): won't continue display of currentview " + currentViewVC.root.id + ". Continuation is blocked.");
+                                    removeRemoveOnFadedFromElement(currentViewVC.root);
                                 }
                             });
                         } else {
@@ -1045,10 +1071,16 @@ class ViewController {
 
         this.root.onclick = null;
 
-        this.lcstatus = CONSTANTS.LIFECYCLE.PAUSED;
+        // REFACVIEWS: we need to check the previ
+        if (this.lcstatus != CONSTANTS.LIFECYCLE.OBSOLETE) {
+            console.log("REFACVIEWS: adding transitionend to non obsolete controller with lifecycle: ", this.lcstatus, this.root);
+            addRemoveOnFadedToElement(this.root);
+        }
+        else {
+            console.log("REFACVIEWS: skip adding transitionend to obsolete controller: ", this.root);
+        }
 
-        // REFACVIEWS:
-        addRemoveOnFadedToElement(this.root);
+        this.lcstatus = CONSTANTS.LIFECYCLE.PAUSED;
     }
 
     // the four lifecycle methods which we realise by setting class attributes
@@ -1323,7 +1355,7 @@ class ViewController {
     }
 
     previousView(returnData, returnStatus) {
-        console.log("previousView()");
+        console.log("REFACVIEWS: previousView(): " + this.root.id, this.root);
         applicationState.popViewController(returnData, returnStatus);
     }
 
@@ -1460,6 +1492,7 @@ class ViewController {
                 console.log("hideDialog(): prepare removal on faded for dialog without controller", this.dialog);
                 // REFACVIEWS:
                 // we remove the dialog on transitionend
+                console.log("REFACVIEWS: adding transitionend for dialog: ", this.dialog);
                 addRemoveOnFadedToElement(this.dialog);
                 this.dialog.classList.add("mwf-hidden");
                 this.dialog = null;
@@ -2158,9 +2191,10 @@ function onloadApplication() {
             document.querySelector("body").classList.add("mwf-loaded-app");
 
             // we set a listener that reacts to changes of the window location
-            window.onbeforeunload = function () {
-                confirm("Do you really want to leave this app?");
-            };
+            // comment because this is blocked by the browsers
+            // window.onbeforeunload = function () {
+            //     confirm("Do you really want to leave this app?");
+            // };
 
             // push the initial view controller to the application state
             applicationState.pushViewController(initialViewController);

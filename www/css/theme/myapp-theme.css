@@ -68,4 +68,9 @@
     /*--var-mwf-form-spacing-horizontal: 10px;*/
     /*--var-mwf-form-spacing-vertical: 10px;*/
 
+    /*!* settings for sidemenu - not used in tutorial; see for an example usage https://github.com/dieschnittstelle/org.dieschnittstelle.iam.mwf.sample *!*/
+    /*--var-mwf-sidemenu-background-color: rgb(70,70,70);*/
+    /*--var-mwf-sidemenu-color: white;*/
+    /*--var-mwf-sidemenu-icon-invert: var(--var-mwf-icon-invert);*/
+
 }

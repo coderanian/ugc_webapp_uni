@@ -697,7 +697,8 @@ li input {
     position: absolute;
     top: 0px;
     margin: 0px;
-    background-color: rgb(70, 70, 70);
+    color: var(--var-mwf-sidemenu-color);
+    background-color: var(--var-mwf-sidemenu-background-color);
     /* for the time being, transitions do not work on percentage values, so we set a predefined width and left position */
     /* width: 65%;
     left: -65%; */
@@ -714,6 +715,10 @@ li input {
     /* left: 0%; */
     left: 0px;
     transition: left 0.4s;
+}
+
+.mwf-sidemenu .mwf-icon {
+    filter: invert(var(--var-mwf-sidemenu-icon-invert));
 }
 
 /* we use a normally invisible border for marking a menu as selected */

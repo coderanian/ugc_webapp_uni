@@ -20,5 +20,6 @@ export class MyEntity extends EntityManager.Entity {
 
 }
 
+// TODO-REPEATED: add new entity type declarations here
 
 

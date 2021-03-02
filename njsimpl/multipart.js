@@ -8,7 +8,7 @@
  */
 
 // imports
-var MultipartParser = require('formidable/lib/multipart_parser').MultipartParser;
+var MultipartParser = require('../node_modules/formidable/lib/multipart_parser').MultipartParser;
 var fs = require('fs');
 var utils = require("./njsutils");
 

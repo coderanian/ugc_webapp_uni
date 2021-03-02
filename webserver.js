@@ -9,6 +9,9 @@ var http = require('http');
 var https = require('https');
 var url = require('url');
 var fs = require('fs');
+// added as proposed by A. Zoellner in W2020 for solving video delivery issue for iOS
+var mime = require('./node_modules/mime');
+const { pipeline } = require("stream");
 
 // not used for the time being
 //var tls = require('tls');
@@ -42,6 +45,10 @@ var multitenantsEnabled = false;
 if (multitenantsEnabled) {
     console.log("\nSERVER RUNNING IN MULTITENANTS MODE -- PLACE TENANTS' APPLICATIONS IN www/<tenant-id> DIRECTORIES AND EDIT njsimpl/tenants.json\n");
 }
+
+!fs.existsSync('www/content') && fs.mkdirSync('www/content');
+!fs.existsSync('www/content/img') && fs.mkdirSync('www/content/img');
+!fs.existsSync('www/content/mov') && fs.mkdirSync('www/content/mov');
 
 /****************************************************************************
  * the top level request processing logic including handling of multitenancy
@@ -160,6 +167,11 @@ function handleRequest(req,res,path,tenant) {
             res.writeHead(204);
             res.end();
         }
+        else if (path.length > 1 && path.indexOf("favicon.ico") != -1) {
+            console.warn((tenant ? tenant.name : "") + ".onHttpRequest(): request tries to access unavailable favicon.ico. Will not deliver anything.");
+            res.writeHead(404);
+            res.end();
+        }
         else {
             if (path == '/') {
                 // if the root is accessed we serve the main html document
@@ -194,23 +206,72 @@ function serveStaticResource(req,res,path,tenant) {
 function doServeStaticResource(req,res,path,tenant) {
 // serveable resources will be put in the webcontent directory -- the callback will be passed the data read out from the file being accessed
 // MULTITENANT: we will serve the resources from the tenant's subdirectory within the www webspace or directly from there if multitenancy is not enabled
-    fs.readFile(__dirname + "/www/" + (tenant ? tenant.id + "/" : "") + path, function (err, data) {
-        // check whether we have got an error retrieving the resource: create a 404 error, assuming that a wrong uri was used
-        if (err) {
-            console.error((tenant ? tenant.name : "") + ".onHttpRequest(): ERROR: cannot find file: " + path);
-            res.writeHead(404);
-            res.write("ERROR: resource not found: " + (tenant ? tenant.origpath : path));
-            res.end();
-        }
-        // otherwise create a 200 response and set the content type header
-        else {
-            res.writeHead(200, {
-                'Content-Type': contentType(path)
-            });
-            res.write(data, 'utf8');
-            res.end();
-        }
+// added partial delivery, used for videos, as proposed by A. Zoellner
+
+  /** Calculate Size of file */
+  const stats = fs.statSync(__dirname + "/www/" + (tenant ? tenant.id + "/" : "") +path);
+  const size = stats.size;
+  const range = req.headers.range;
+
+  /** Check for Range header */
+  if (range) {
+    /** Extracting Start and End value from Range Header */
+    let [start, end] = range.replace(/bytes=/, "").split("-");
+    start = parseInt(start, 10);
+    end = end ? parseInt(end, 10) : size - 1;
+
+    if (!isNaN(start) && isNaN(end)) {
+      start = start;
+      end = size - 1;
+    }
+    if (isNaN(start) && !isNaN(end)) {
+      start = size - end;
+      end = size - 1;
+    }
+
+    // Handle unavailable range request
+    if (start >= size || end >= size) {
+      // Return the 416 Range Not Satisfiable.
+      res.writeHead(416, {
+        "Content-Range": `bytes */${size}`
+      });
+      return res.end();
+    }
+
+    /** Sending Partial Content With HTTP Code 206 */
+    res.writeHead(206, {
+      "Content-Range": `bytes ${start}-${end}/${size}`,
+      "Accept-Ranges": "bytes",
+      "Content-Length": end - start + 1,
+      "Content-Type": contentType(path)
     });
+    console.log('serving ' + `bytes ${start}-${end}/${size}`);
+
+    let readable = fs.createReadStream(__dirname + "/www/" + (tenant ? tenant.id + "/" : "") + path, {start: start, end: end});
+    pipeline(readable, res, err => {
+      if (err) {
+        console.log('error: ' + err);
+      }
+    });
+  } else {
+    fs.readFile(__dirname + "/www/" + (tenant ? tenant.id + "/" : "") + path, function (err, data) {
+      // check whether we have got an error retrieving the resource: create a 404 error, assuming that a wrong uri was used
+      if (err) {
+        console.error((tenant ? tenant.name : "") + ".onHttpRequest(): ERROR: cannot find file: " + path);
+        res.writeHead(404);
+        res.write("ERROR: resource not found: " + (tenant ? tenant.origpath : path));
+        res.end();
+      }
+      // otherwise create a 200 response and set the content type header
+      else {
+        res.writeHead(200, {
+          'Content-Type': contentType(path)
+        });
+        res.write(data, 'utf8');
+        res.end();
+      }
+    });
+  }
 }
 
 
@@ -256,30 +317,6 @@ if (httpsEnabled) {
  * helper method for contentType assignment based on file extension
  ***********************************************************************************/
 function contentType(path) {
-    if (path.match('.js$')) {
-        return "text/javascript";
-    } else if (path.match('.css$')) {
-        return "text/css";
-    } else if (path.match('.json$')) {
-        return "application/json";
-    } else if (path.match('.css$')) {
-        return "text/css";
-    } else if (path.match('.png$')) {
-        return "image/png";
-    } else if (path.match('.jpg$')) {
-        return "image/jpeg";
-    } else if (path.match('.jpeg$')) {
-        return "image/jpeg";
-    } else if (path.match('.ogv$')) {
-        return "video/ogg";
-    } else if (path.match('.ogg$')) {
-        return "audio/ogg";
-    } else if (path.match('.manifest$')) {
-        return "text/cache-manifest";
-    } else if (path.match('.webapp$')) {
-        return "application/x-web-app-manifest+json";
-    } else {
-        return "text/html";
-    }
+    return mime.getType(path);
 }
 

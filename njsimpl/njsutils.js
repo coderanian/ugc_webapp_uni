@@ -36,7 +36,7 @@ module.exports = {
 
         var operatingSystem= process.platform;
         var networkInterfaces= require('os').networkInterfaces();
-        var allowedAdapterNamesRegExp= new RegExp("^(Ethernet|WLAN|WiFi)");
+        var allowedAdapterNamesRegExp= new RegExp("^(Ethernet|WLAN|WiFi|Wi-Fi)");
         var ipAddress= '127.0.0.1';
 
         switch(operatingSystem) {

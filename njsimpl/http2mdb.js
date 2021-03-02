@@ -22,7 +22,7 @@ function CRUDImpl(tenant) {
     // use our own utility functions
     var utils = require("./njsutils");
 
-    var mdbclient = require('mongodb').MongoClient;
+    var mdbclient = require('../node_modules/mongodb').MongoClient;
     console.log(databaseLogPrefix + ".CRUDImpl(): got mdbclient");
 
     /* MFM: import the components required for multipart request ("file upload") processing
@@ -44,7 +44,7 @@ function CRUDImpl(tenant) {
         }
         if (segments.length > 1 && segments[1].length > 0) {
             try {
-                this.objectid = require("mongodb").ObjectId(segments[1]);
+                this.objectid = require("../node_modules/mongodb").ObjectId(segments[1]);
             } catch (exception) {
                 console.log(databaseLogPrefix + ".MDBRequest(): got exception: " + exception + ". This might be due to using an _id that has been assigned remotely: " + segments[1]);
                 this.objectid = segments[1];//parseInt(segments[1]);

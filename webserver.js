@@ -5,16 +5,13 @@
 // this is for switching between the standard and the new theme mode for displaying the views
 let themes = false;
 
-var http = require('http');
-var https = require('https');
-var url = require('url');
-var fs = require('fs');
+var http = require("http");
+var https = require("https");
+var url = require("url");
+var fs = require("fs");
 // added as proposed by A. Zoellner in W2020 for solving video delivery issue for iOS
-var mime = require('./node_modules/mime');
+var mime = require("./node_modules/mime");
 const { pipeline } = require("stream");
-
-// not used for the time being
-//var tls = require('tls');
 
 var utils = require("./njsimpl/njsutils");
 

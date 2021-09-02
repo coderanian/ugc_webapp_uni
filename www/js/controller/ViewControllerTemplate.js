@@ -62,7 +62,7 @@ export default class ViewControllerTemplate extends mwf.ViewController {
      * for views that initiate transitions to other views
      * NOTE: return false if the view shall not be returned to, e.g. because we immediately want to display its previous view. Otherwise, do not return anything.
      */
-    async onReturnFromSubview(subviewid, returnValue, returnStatus) {
+    async onReturnFromNextView(subviewid, returnValue, returnStatus) {
         // TODO: check from which view, and possibly with which status, we are returning, and handle returnValue accordingly
     }
 

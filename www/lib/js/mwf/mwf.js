@@ -303,17 +303,17 @@ function ApplicationState() {
                         // here, we reattach the embedded controllers
                         reattachEmbeddedControllers(currentViewVC);
 
-                        // TODO: we need to foresee the possibility that onreturnfromsubview cancels the resumption of the current view
+                        // TODO: we need to foresee the possibility that onReturnFromNextView cancels the resumption of the current view
                         // (e.g. when the view shall be skipped (e.g. readview after item deletion)
-                        if (currentViewVC.onReturnFromSubview) {
-                            currentViewVC.onReturnFromSubview(vc.root.id, returnData, returnStatus).then(function (goahead) {
+                        if (currentViewVC.onReturnFromNextView) {
+                            currentViewVC.onReturnFromNextView(vc.root.id, returnData, returnStatus).then(function (goahead) {
                                 if (goahead != false) {
-                                    console.log("REFACVIEWS: onReturnFromSubview(): continuing regularly " + currentViewVC.root.id);
+                                    console.log("REFACVIEWS: onReturnFromNextView(): continuing regularly " + currentViewVC.root.id);
                                     currentViewVC.onresume().then(function () {
                                     });
                                 }
                                 else {
-                                    console.info("REFACVIEWS: onReturnFromSubview(): won't continue display of currentview " + currentViewVC.root.id + ". Continuation is blocked.");
+                                    console.info("REFACVIEWS: onReturnFromNextView(): won't continue display of currentview " + currentViewVC.root.id + ". Continuation is blocked.");
                                     removeRemoveOnFadedFromElement(currentViewVC.root);
                                 }
                             });

@@ -382,6 +382,10 @@ function ApplicationState() {
         return embeddedViewControllers[ctrlid];
     };
 
+    this.countControllers = function() {
+        return activeViewControllers.length;
+    }
+
 }
 
 /*
@@ -1360,9 +1364,18 @@ class ViewController {
         }
     }
 
+    // prevent going back to the grey nothing if back is pressed from the only active controller
     previousView(returnData, returnStatus) {
         console.log("REFACVIEWS: previousView(): " + this.root.id, this.root);
+        if (applicationState.countControllers() < 2) {
+            this.onPreviousViewBlocked();
+            return;
+        }
         applicationState.popViewController(returnData, returnStatus);
+    }
+
+    onPreviousViewBlocked() {
+        alert("There is no previous view we can return to. Keep current view.");
     }
 
     getBody() {

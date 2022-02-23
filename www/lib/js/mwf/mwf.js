@@ -1527,7 +1527,7 @@ class ViewController {
     /*
      * bind a view element to some data - elementid might either be an element or a template - this function will be used by subclasses, e.g. for instantiating forms
      */
-    bindElement(elementid, data, attachToRoot) {
+    bindElement(elementid, data, parent) {
         console.log("bindElement(): " + elementid);
 
         var boundElement = null;
@@ -1535,7 +1535,7 @@ class ViewController {
         function isTemplateWrapper(element) {
             // either no classes (mere div wrapper), or mwf-template and at most mwf-databind
             if (((element.tagName.toLowerCase() == "div") || (element.tagName.toLowerCase() == "span")) && (element.classList.length == 0 || (element.classList.contains("mwf-template") && (element.classList.length == 2 ? element.classList.contains("mwf-databind") : element.classList.length == 1)))) {
-                console.log("bindElement(): element is a mere wrapper. Will attach it to root elemenent if provided: " + attachToRoot);
+                console.log("bindElement(): element is a mere wrapper. Will attach it to root elemenent if provided: " + parent);
                 return true;
             }
             return false;
@@ -1549,13 +1549,13 @@ class ViewController {
                 console.log("bindElement(): found template: " + element);
 
                 // check whether we have a mere template, whose content needs to be unwrapped
-                applyDatabinding(attachToRoot && isTemplateWrapper(element.root) ? attachToRoot : element.root, element.body, data);
+                applyDatabinding(parent && isTemplateWrapper(element.root) ? parent : element.root, element.body, data);
 
                 boundElement = element.root;
             }
             else {
                 console.log("bindElement(): binding to a non-template element");
-                applyDatabinding(attachToRoot && isTemplateWrapper(element) ? attachToRoot : element, element.innerHTML, data);
+                applyDatabinding(parent && isTemplateWrapper(element) ? parent : element, element.innerHTML, data);
 
                 boundElement = element;
             }
@@ -1563,21 +1563,21 @@ class ViewController {
         else {
             // otherwise we have a element that may be treated itself as a template root
             console.log("bindElement(): binding a dom element");
-            applyDatabinding(attachToRoot && isTemplateWrapper(elementid) ? attachToRoot : elementid, elementid.innerHTML, data);
+            applyDatabinding(parent && isTemplateWrapper(elementid) ? parent : elementid, elementid.innerHTML, data);
 
             boundElement = elementid;
         }
 
         if (boundElement) {
-            if (attachToRoot) {
-                attachToRoot.appendChild(boundElement);
+            if (parent) {
+                parent.appendChild(boundElement);
 
                 // TODO: this is a workaround related to the not completely transparent logics of whether the root or the element itself is passed to applyDatabinding
-                if (!attachToRoot.viewProxy) {
-                    attachToRoot.viewProxy = boundElement.viewProxy;
+                if (!parent.viewProxy) {
+                    parent.viewProxy = boundElement.viewProxy;
                 }
 
-                return attachToRoot;
+                return parent;
             }
             return boundElement;
         }

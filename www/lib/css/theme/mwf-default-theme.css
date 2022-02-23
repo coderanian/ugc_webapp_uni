@@ -50,6 +50,7 @@
     --var-mwf-listitem-titleblock-h2-font-size: var(--var-mwf-larger-font-size);
     --var-mwf-listitem-titleblock-h3-font-size: var(--var-mwf-smaller-font-size);
     --var-mwf-listitem-titleblock-h3-uplift: 0px;
+    --var-mwf-listitem-imgsize: 50px;
 
     /* settings for dialogs */
     --var-mwf-dialog-background-color: rgb(240, 240, 240);

@@ -673,8 +673,8 @@ h2.mwf-li-titleblock {
 }
 
 li img {
-    width: 50px;
-    max-height: 50px;
+    width:  var(--var-mwf-listitem-imgsize);
+    max-height:  var(--var-mwf-listitem-imgsize);
     margin: 0px;
     padding: 0px;
 }

@@ -374,7 +374,7 @@ function ApplicationState() {
             embeddedViewControllers[vc.root.getAttribute("data-mwf-templatename")] = vc;
         }
         else {
-            console.error("embedded controller neither specifies an id, nor a data-mwf-templatename. How shall it be identified?");
+            console.error("addEmbeddedController(): embedded controller neither specifies an id, nor a data-mwf-templatename. How shall it be identified?");
         }
     };
 
@@ -420,7 +420,7 @@ function ApplicationResources() {
     this.getTemplateInstance = function (templatename) {
         var template = templates[templatename];
         if (!template) {
-            console.error("the template " + templatename + " does not exist!");
+            console.error("getTemplateInstance(): the template " + templatename + " does not exist!");
         }
         else {
             // we will always return a segmented object which has at least root set!!!
@@ -565,6 +565,17 @@ function ListviewAdapter(_listview, _controller, _resources) {
             }
         }
         return null;
+    };
+
+    this.getItemview = function (itemId) {
+        console.log("ListviewAdapter.getItemview(): " + itemId + ", num of elements are: " + this.elements.length);
+        var selector = ".mwf-listitem[data-mwf-id=\'" + itemId + "\']";
+        var itemview = listview.querySelector(selector);
+
+        if (!itemview) {
+            console.error("getItemview(): no itemview could be obtained for item with id: ", itemId);
+        }
+        return itemview;
     };
 
     this.length = function() {
@@ -1627,6 +1638,13 @@ class ViewController {
 
         console.log("readFromListview(): " + listview + "/" + itemid);
         return listview.read(itemid);
+    }
+
+    getItemviewFromListview(itemid, listviewid) {
+        var listview = getListviewAdapter.call(this, listviewid);
+
+        console.log("getItemviewFromListview(): " + listview + "/" + itemid);
+        return listview.getItemview(itemid);
     }
 
     readAllFromListview(itemid, listviewid) {

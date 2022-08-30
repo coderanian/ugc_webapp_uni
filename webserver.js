@@ -121,11 +121,16 @@ var application = function(req, res) {
 
     // exception handling, see http://stackoverflow.com/questions/5999373/how-do-i-prevent-node-js-from-crashing-try-catch-doesnt-work
     process.on("uncaughtException", function (error) {
-        console.log("onHttpRequest): got an uncaught exception!");
-        console.log(error.stack);
-        console.log(".onHttpRequest(): finishing response on error...");
-        res.writeHead(500);
-        res.end();
+        if (res.headersSent) {
+            console.log(".onHttpRequest(): got exception, but response has already been sent. Do not do anything...");
+        }
+        else {
+            console.log("onHttpRequest(): got an uncaught exception!");
+            console.log(error.stack);
+            console.log(".onHttpRequest(): finishing response on exception...");
+            res.writeHead(500);
+            res.end();
+        }
     });
 
     // don't limit the amount of event listeners

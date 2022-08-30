@@ -83,7 +83,7 @@ function CRUDImpl(tenant) {
             },function (err, client) {
 
                 if (err) {
-                    console.error(databaseLogPrefix + ".processRequest(): cannot access database: " + err);
+                    console.error(databaseLogPrefix + ".processRequest(): cannot access database: ", err);
                     res.writeHead(500);
                     res.end();
                     return;

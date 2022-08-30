@@ -81,7 +81,6 @@ function CRUDImpl(tenant) {
                 connectTimeoutMS: mdbConnectTimeoutMS,
                 serverSelectionTimeoutMS: mdbSelectionTimeoutMS
             },function (err, client) {
-                const db = client.db(databaseName);
 
                 if (err) {
                     console.error(databaseLogPrefix + ".processRequest(): cannot access database: " + err);
@@ -89,6 +88,7 @@ function CRUDImpl(tenant) {
                     res.end();
                     return;
                 }
+                const db = client.db(databaseName);
 
                 console.log(databaseLogPrefix + ".processRequest(): got db: " + db);
 

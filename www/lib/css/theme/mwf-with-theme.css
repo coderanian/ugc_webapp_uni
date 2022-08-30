@@ -337,7 +337,7 @@ header button, footer button, header input[type=submit], footer[type=submit] {
     /* for whatever reason, 80% spans over the whole width on the right hand side */
     width: 80%;
     background-color: var(--var-mwf-dialog-background-color);
-    border: 1px solid var(--var-mwf-dialog-border-color);
+    border: var(--var-mwf-dialog-border-width) solid var(--var-mwf-dialog-border-color);
 }
 
 .mwf-dialog h2 {
@@ -810,7 +810,7 @@ li input {
     padding: 0px;
     background-color: var(--var-mwf-listitem-menu-background-color);
     /*opacity: 1.0;*/
-    border: 1px solid var(--var-mwf-listitem-menu-border-color);
+    border: var(--var-mwf-listitem-menu-border-width) solid var(--var-mwf-listitem-menu-border-color);
 }
 
 .mwf-dialog.mwf-listitem-menu header {

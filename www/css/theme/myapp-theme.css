@@ -1,4 +1,6 @@
 :root {
+    /* TODO: modify those entries that shall be adapted */
+
     /*!* general colors *!*/
     --var-mwf-primary-text-color: black;
     /*--var-mwf-dialog-text-color: black;*/
@@ -20,6 +22,7 @@
     /*--var-mwf-header-separator-height: 0px;*/
     /*--var-mwf-header-separator-color: transparent;*/
     /*--var-mwf-header-font-size: 16pt;*/
+
     /*!* settings for the footer *!*/
     /*--var-mwf-footer-height: 40px;*/
     /*--var-mwf-footer-background-color: black;*/
@@ -55,11 +58,13 @@
     /*!* settings for dialogs *!*/
     /*--var-mwf-dialog-background-color: rgb(240, 240, 240);*/
     /*--var-mwf-dialog-border-color: white;*/
+    /*--var-mwf-dialog-border-width: 1px;*/
     /*--var-mwf-dialog-button-font-size: 14pt;*/
     /*--var-mwf-listitem-menu-background-color: rgb(70, 70, 70);*/
     /*--var-mwf-listitem-menu-heading-height: 40px;*/
     /*--var-mwf-listitem-menu-heading-font-size: var(--var-mwf-larger-font-size);*/
     /*--var-mwf-listitem-menu-border-color: rgb(70, 70, 70);*/
+    /*--var-mwf-listitem-menu-border-width: 1px;*/
     /*--var-mwf-toast-background-color: gray;*/
     /*--var-mwf-toast-color: white;*/
 

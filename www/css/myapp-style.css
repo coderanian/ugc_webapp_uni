@@ -1,1 +1,43 @@
 /* TODO: add any application specific styling here */
+main li img{
+    height: var(--var-mwf-listitem-imgsize);
+    object-fit: cover;
+}
+
+#previewVideo{
+    width:100%;
+}
+
+#mediaReadview img {
+    width:      100%;
+    max-width:  100%;
+}
+
+#mediaReadview video {
+    width:      100%;
+    max-width:  100%;
+}
+
+.preview{
+    padding: 2vh 0 0 0;
+    display: block;
+    margin: auto;
+}
+
+.previewDelete{
+    max-width:  100%;
+    max-width:  100%;
+    display: block;
+    margin: auto;
+}
+
+.mwf-buttonbar > .mwf-button {
+    border-top: 1px solid rgb(120, 120, 120); !important;
+    border-right: 1px solid rgb(120, 120, 120); !important;
+    color: white;
+}
+
+/*Aligns remote/local connection in footer as not done in mwf css*/
+footer > .mwf-left-align{
+    margin: 10px;
+}

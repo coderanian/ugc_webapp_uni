@@ -29,7 +29,276 @@
 <body data-mwf-application="MyApplication" class="mwf-loading-app">
 
 <!-- TODO-REPEATED: add new views here -->
-<div class="mwf-view mwf-view-initial" data-mwf-viewcontroller="MyInitialViewController">
+<!--Media Overview-->
+<div class="mwf-view mwf-view-initial"
+     style="overflow: hidden"
+     id="mediaOverview"
+     data-mwf-viewcontroller="ListviewViewController"
+>
+    <header>
+        <button class="mwf-imgbutton mwf-img-sandwich mwf-left-align"></button>
+        <h1 class="mwf-left-align">Medien</h1>
+        <button class="mwf-imgbutton mwf-img-plus mwf-right-align"
+                id="addNewMediaItem"
+        ></button>
+    </header>
+    <main class="mwf-scrollview">
+        <ul class="mwf-listview"
+            data-mwf-listitem-menu="mediaItemMenu"
+            data-mwf-listitem-view="myapp-listitem"
+        >
+            <li class="mwf-listitem mwf-li-title-subtitle mwf-template mwf-databind"
+                data-mwf-templatename="myapp-listitem"
+                data-mwf-targetview="mediaReadview">
+                <img class="mwf-left-align"
+                     src="{{#if mediaTypes != 'video'}}{{src}}{{else}}content/img/videoicon.png{{/if}}"
+                >
+                <div class="mwf-li-titleblock mwf-left-align">
+                    <h2>{{title}} {{_id}}</h2>
+                    <h3>{{addedDateString}}</h3>
+                </div>
+                <button class="mwf-imgbutton mwf-img-options-vertical mwf-right-align mwf-listitem-menu-control">
+                </button>
+            </li>
+        </ul>
+    </main>
+    <footer>
+        <h3 id="scopeDetails" class="mwf-left-align">remote</h3>
+        <button id="scopeBtn" class="mwf-right-align mwf-imgbutton mwf-img-refresh"></button>
+    </footer>
+</div>
+
+<!--Readview-->
+<div class="mwf-view"
+     data-mwf-viewcontroller="ReadViewController"
+     id="mediaReadview">
+    <div class="mwf-template mwf-databind"
+         data-mwf-templatename="mediaReadviewTemplate"
+    >
+        <header>
+            <button class="mwf-imgbutton mwf-img-sandwich mwf-left-align"></button>
+            <h1 class="mwf-left-align">{{item.title}}</h1>
+            <button class="mwf-imgbutton mwf-img-pencil mwf-right-align"
+                    on-click="editItem"
+            ></button>
+            <button class="mwf-imgbutton mwf-img-delete mwf-right-align"
+                    on-click="deleteItem"
+            ></button>
+        </header>
+        <main id="fullview" class="mwf-scrollview">
+            {{#if item.mediaTypes != "video"}}
+            <img class="preview"
+                 src="{{item.src}}"
+            />
+            {{else}}
+            <video src="{{item.src}}"
+                   controls="controls"
+            ></video>
+            {{/if}}
+            <div>
+                {{item.description}}
+            </div>
+        </main>
+        <footer>
+            <button class="mwf-back mwf-imgbutton mwf-img-backward"></button>
+        </footer>
+    </div>
+
+</div>
+
+<!--Dialogue edit/delete-->
+<div data-mwf-templatename="mediaItemMenu"
+     class="mwf-template
+            mwf-databind
+            mwf-dialog
+            mwf-popup
+            mwf-listitem-menu"
+>
+    <header>
+        <h2 class="mwf-dyncontent">
+            {{title}} {{_id}}
+        </h2>
+    </header>
+    <main>
+        <ul>
+            <li class="mwf-li-singletitle mwf-menu-item"
+                data-mwf-targetaction="deleteItemConfirm">
+                Delete
+            </li>
+            <li class="mwf-li-singletitle mwf-menu-item"
+                data-mwf-targetaction="editItem">
+                Edit (FRM3)
+            </li>
+            <li class="mwf-li-singletitle mwf-menu-item"
+                data-mwf-targetaction="editItemAlt">
+                Edit (FRM2)
+            </li>
+            <li class="mwf-li-singletitle mwf-menu-item"
+                data-mwf-targetaction="copyItem">
+                Copy
+            </li>
+        </ul>
+    </main>
+</div>
+
+<!--Dialogue delete confirmation-->
+<div data-mwf-templatename="mediaDeleteConfirmation"
+     data-mwf-viewcontroller="GenericDialogTemplateViewController"
+     class="mwf-view-component
+            mwf-template
+            mwf-databind
+            mwf-dialog
+            mwf-popup
+            mwf-listitem-menu"
+>
+    <header>
+        <h2>
+            Confirm
+        </h2>
+    </header>
+    <main>
+        <p class="mwf-dyncontent" style="color:white">
+            Delete {{item.title}}?
+        </p>
+        <img class="previewDelete" src="{{item.src}}"/>
+        <div class="mwf-buttonbar">
+            <button class="mwf-left-align mwf-button deleteDialogBtn"
+                    type="button"
+                    on-click="cancel"
+                    style="background: rgb(60, 60, 60);"
+            >Cancel</button>
+            <button class="mwf-left-align mwf-button deleteDialogBtn mwf-button-prio"
+                    type="button"
+                    on-click="confDeleteItem"
+            >Delete</button>
+        </div>
+    </main>
+</div>
+
+<!--Edit/creation form: ESA3-->
+<div class="mwf-view"
+     id="mediaEditview"
+     data-mwf-viewcontroller="EditviewViewController"
+     style="overflow: hidden">
+    <div class="mwf-template mwf-databind" data-mwf-templatename="mediaEditviewTemplate">
+        <header>
+            <button class="mwf-imgbutton mwf-img-sandwich mwf-left-align"></button>
+            <h1>
+                {{#if item.created}}Edit {{item.title}}
+                {{else}}Create new media{{/if}}
+            </h1>
+            <button class="mwf-right-align mwf-imgbutton mwf-img-disk"
+                    type="submit"
+                    on-click="editItem"
+                    form="mediaEditviewForm"
+            ></button>
+            <!--In html5 disabled itself is boolean, use older html format for ractive-->
+            <button class="mwf-right-align mwf-imgbutton mwf-img-delete"
+                    type="button"
+                    on-click="confDeleteItem"
+                    disabled="{{#if !item.created}}disabled{{/if}}"
+            ></button>
+            <button class="mwf-right-align mwf-imgbutton mwf-img-paste"
+                    type="button"
+                    on-click="srcDefault"
+                    disabled="{{#if item.created}}disabled{{/if}}"
+            ></button>
+
+        </header>
+        <main class="mwf-scrollview">
+            <form id="mediaEditviewForm">
+                <fieldset class="mwf-material  mwf-material-filled mwf-material-valid">
+                    <legend>Source*</legend>
+                    <input type="text"
+                           name="src"
+                           required="required"
+                           placeholder="url"
+                           pattern="http://.*|https://.*|blob:.*|content/.*"
+                           value="{{item.src}}"
+                           class="mwf-material-altinput-target"
+                    />
+                    <label for="upload"
+                           class="mwf-imgbutton mwf-img-camera mwf-left-align mwf-material-altinput"
+                    ></label>
+                    <input id="upload"
+                           type="file"
+                           name="filesrc"
+                           class="mwf-material-altinput"
+                    />
+                </fieldset>
+                <fieldset class="mwf-material  mwf-material-filled mwf-material-valid">
+                    <legend>Title*</legend>
+                    <input value="{{item.title}}"
+                           required="required"
+                           type="text"
+                           name="title"
+                           pattern="^[a-zA-Z0-9][a-zA-Z0-9-_\.\s]{1,20}"
+                           required="required"
+                           placeholder="Title"
+                    />
+                </fieldset>
+                {{#if item.mediaTypes != "video"}}
+                <img class="preview"
+                     id="preview"
+                     src=""
+                />
+                {{else}}
+                <video id="previewVideo"
+                       src=""
+                       controls="controls"
+                       class="preview"
+                ></video>
+                {{/if}}
+                <fieldset class="mwf-material mwf-material-filled mwf-material-valid">
+                    <legend>Description</legend>
+                    <textarea rows="3"
+                              cols="50"
+                              style="resize: none"
+                              name="description"
+                              value="{{item.description}}"
+                    ></textarea>
+                </fieldset>
+            </form>
+        </main>
+        <footer>
+            <button class="mwf-imgbutton mwf-img-backward mwf-left-align mwf-back"></button>
+        </footer>
+    </div>
+
+</div>
+
+<!--Edit/creation form: ESA2-->
+<div data-mwf-templatename="mediaItemDialog"
+     data-mwf-viewcontroller="GenericDialogTemplateViewController"
+     class="mwf-view-component
+            mwf-template
+            mwf-databind
+            mwf-dialog
+            mwf-popup
+            mwf-listitem-menu"
+>
+    <header>
+        <h2>
+            {{#if item.created}}Medium editieren{{else}}Neues Medium{{/if}}
+        </h2>
+    </header>
+    <main>
+        <form id="itemEditForm" on-submit="submitForm">
+            <input name="title" autocomplete="off" class="mwf-autofocus"
+                   type="text" placeholder="Titel" required="required"
+                   value="{{item.title}}" style="background:white"/>
+            <div class="mwf-buttonbar">
+                <button class="mwf-left-align mwf-button"
+                        type="button"
+                        disabled="{{#unless item.created}}disabled{{/unless}}"
+                        on-click="delete" style="color:white;">Löschen
+                </button>
+                <input class="mwf-button-prio mwf-right-align mwf-button"
+                       type="submit"
+                       value="{{#if item.created}}Ändern{{else}}Hinzufügen{{/if}}"/>
+            </div>
+        </form>
+    </main>
 </div>
 
 </body>
